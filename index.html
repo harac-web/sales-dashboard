@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ヨミクエリ 売上ダッシュボード</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root{--bg:#0f172a;--surface:#1e293b;--border:#334155;--text:#f1f5f9;--muted:#94a3b8;--dim:#64748b;--accent:#6366f1;--green:#10b981;--amber:#f59e0b;--red:#ef4444;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Hiragino Sans','Noto Sans JP',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:20px 16px;}
+    h1{font-size:20px;font-weight:800;}
+    .sub{color:var(--dim);font-size:11px;margin-top:2px;}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+    .btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;}
+    .btn:hover{background:var(--border);}
+    .btn-accent{background:var(--accent);color:#fff;border:none;}
+    .kpi-grid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;}
+    .kpi{background:var(--surface);border-radius:12px;padding:14px 16px;flex:1 1 130px;min-width:120px;}
+    .kpi-label{color:var(--muted);font-size:10px;font-weight:600;margin-bottom:3px;}
+    .kpi-val{font-size:20px;font-weight:800;}
+    .kpi-sub{color:var(--dim);font-size:10px;margin-top:2px;}
+    .filters{background:var(--surface);border-radius:12px;padding:14px;margin-bottom:18px;}
+    .filter-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+    .filter-header span{font-size:12px;font-weight:700;}
+    .filter-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;align-items:center;}
+    .filter-label{color:var(--dim);font-size:10px;font-weight:600;min-width:55px;flex-shrink:0;}
+    .chip{padding:4px 10px;border-radius:16px;border:none;cursor:pointer;font-size:11px;font-weight:600;background:var(--bg);color:var(--muted);white-space:nowrap;transition:all .15s;}
+    .chip.active{background:var(--accent);color:#fff;}
+    .chip:hover{opacity:.85;}
+    .chip .cnt{background:rgba(255,255,255,.15);padding:1px 5px;border-radius:8px;font-size:9px;margin-left:3px;}
+    .chip-multi{border:1.5px solid transparent;}
+    .chip-multi.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+    .chip-multi.selected{background:rgba(99,102,241,.2);color:var(--accent);border-color:var(--accent);}
+    .multi-hint{color:var(--dim);font-size:9px;font-style:italic;margin-left:4px;}
+    .sel{padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;appearance:auto;}
+    .sel:focus{outline:1px solid var(--accent);}
+    .tabs{display:flex;gap:4px;margin-bottom:10px;}
+    .tab{padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-weight:600;background:transparent;color:var(--muted);}
+    .tab.active{background:var(--accent);color:#fff;}
+    .chart-wrap{background:var(--surface);border-radius:12px;padding:16px;}
+    canvas{max-height:1000px;min-height:600px;}
+    .stack-row{display:flex;gap:4px;align-items:center;margin-bottom:12px;}
+    .stack-label{color:var(--dim);font-size:10px;}
+    .loading{display:flex;align-items:center;justify-content:center;height:80vh;flex-direction:column;}
+    .spinner{font-size:36px;animation:spin 1s linear infinite;margin-bottom:12px;}
+    @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+    .footer{color:#334155;font-size:9px;text-align:center;margin-top:12px;}
+    .controls-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;}
+    .month-range{display:flex;align-items:center;gap:4px;}
+    .month-range span{color:var(--dim);font-size:10px;}
+    /* Table styles */
+    .table-section{background:var(--surface);border-radius:12px;padding:16px;margin-top:18px;overflow-x:auto;}
+    .table-section h2{font-size:14px;font-weight:700;margin-bottom:12px;color:var(--text);}
+    .data-table{width:100%;border-collapse:collapse;font-size:11px;min-width:600px;}
+    .data-table th{background:var(--bg);color:var(--muted);font-weight:600;padding:8px 10px;text-align:right;border-bottom:2px solid var(--border);position:sticky;top:0;white-space:nowrap;}
+    .data-table th:first-child{text-align:left;min-width:120px;}
+    .data-table td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap;}
+    .data-table td:first-child{text-align:left;color:var(--muted);font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;}
+    .data-table tr:hover td{background:rgba(99,102,241,.06);}
+    .data-table .total-row td{border-top:2px solid var(--accent);font-weight:800;color:var(--accent);background:rgba(99,102,241,.05);}
+    .data-table .total-row td:first-child{color:var(--accent);}
+    .data-table .zero{color:var(--border);}
+    /* Page tabs */
+    .page-tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px;}
+    .page-tab{padding:7px 18px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .page-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+    .page-tab:hover:not(.active){background:var(--surface);border-color:var(--border);}
+    /* Who page */
+    .two-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+    @media(max-width:900px){.two-charts{grid-template-columns:1fr;}}
+    .chart-wrap-sm canvas{min-height:320px;max-height:400px;}
+    .chart-title{font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text);}
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="loading"><div class="spinner">⟳</div><div style="font-size:16px;font-weight:700;">データを読み込み中...</div><div style="font-size:12px;color:var(--dim);margin-top:4px;">スプレッドシートからリアルタイム取得</div></div>
+</div>
+<script>
+const API_URL="https://script.google.com/macros/s/AKfycbyJR62yMpbSixeQUxDbbFs_6MFlMW055oz4XOGwmcCo9XShrFcmaU026aUdnc_LN_px-A/exec";
+const API_KEY="yomi-shukei-test";
+const COLORS=["#6366f1","#f59e0b","#10b981","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#06b6d4","#84cc16","#a855f7","#e11d48","#0ea5e9","#65a30d"];
+
+let rawData=[], filteredData=[], allMonths=[];
+let meta={updated:"",count:0};
+let charts={};
+let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",showFilters:true,page:"main"};
+
+function parseMonth(v){
+  if(!v)return null;const s=String(v);let y,m;
+  if(s.includes("T")||s.includes("-")){const d=new Date(s);const utcD=d.getUTCDate();if(utcD>=28){m=d.getUTCMonth()+2;y=d.getUTCFullYear()%100;if(m>12){m=1;y+=1;}}else{m=d.getUTCMonth()+1;y=d.getUTCFullYear()%100;}}
+  else{const match=s.match(/(\d+)年(\d+)月/);if(match){y=parseInt(match[1]);m=parseInt(match[2]);}else return null;}
+  return{y,m,label:`${y}年${m}月`,sort:y*100+m};
+}
+function unique(arr){return[...new Set(arr)].filter(Boolean).sort();}
+function sum(arr,key){return arr.reduce((s,r)=>s+(r[key]||0),0);}
+function groupBy(arr,key){return arr.reduce((g,r)=>{const k=r[key]||"";(g[k]=g[k]||[]).push(r);return g;},{});}
+function esc(s){return s.replace(/'/g,"\\'").replace(/"/g,"&quot;");}
+function toggleMulti(key,val){const arr=F[key];const idx=arr.indexOf(val);if(idx===-1)arr.push(val);else arr.splice(idx,1);render();}
+function clearMulti(key){F[key]=[];render();}
+
+async function fetchData(){
+  document.getElementById("app").innerHTML=`<div class="loading"><div class="spinner">⟳</div><div style="font-size:16px;font-weight:700;">データを読み込み中...</div><div style="font-size:12px;color:var(--dim);margin-top:4px;">スプレッドシートからリアルタイム取得</div></div>`;
+  try{
+    const res=await fetch(`${API_URL}?key=${API_KEY}`);const json=await res.json();
+    if(!json.success)throw new Error(json.error);
+    meta.updated=json.updated;meta.count=json.count;
+    rawData=json.data.map(r=>{const pm=parseMonth(r["計上月"]);return{cd:r["ヨミコード"]||"",who:r["担当"]||"",client:r["取引先"]||"",month:pm?pm.label:"",monthSort:pm?pm.sort:0,prod:r["商品名"]||"",amt:parseFloat(r["売上(万円)"])||0,st:r["ステータス"]||"",cat:r["大分類"]||"",type:r["製品タイプ"]||"",tm:r["売上TM"]||"",div:r["売上Div"]||"",ki:r["期"]||""};});
+    const mSet=new Map();rawData.forEach(r=>{if(r.month&&r.monthSort)mSet.set(r.month,r.monthSort);});
+    allMonths=[...mSet.entries()].sort((a,b)=>a[1]-b[1]).map(e=>({label:e[0],sort:e[1]}));
+    render();
+  }catch(e){document.getElementById("app").innerHTML=`<div class="loading"><div style="font-size:32px;margin-bottom:12px;">⚠️</div><div style="font-size:16px;font-weight:700;margin-bottom:8px;">データ取得エラー</div><div style="font-size:12px;color:#ef4444;margin-bottom:16px;">${e.message}</div><button class="btn btn-accent" onclick="fetchData()">再読み込み</button></div>`;}
+}
+
+function applyFilters(){
+  const mFrom=F.monthFrom==="all"?0:allMonths.find(m=>m.label===F.monthFrom)?.sort||0;
+  const mTo=F.monthTo==="all"?99999:allMonths.find(m=>m.label===F.monthTo)?.sort||99999;
+  filteredData=rawData.filter(r=>{
+    if(F.cat.length>0&&!F.cat.includes(r.cat))return false;
+    if(F.st.length>0&&!F.st.includes(r.st))return false;
+    if(F.client!=="all"&&r.client!==F.client)return false;
+    if(F.type!=="all"&&r.type!==F.type)return false;
+    if(F.who!=="all"&&r.who!==F.who)return false;
+    if(F.div!=="all"&&r.div!==F.div)return false;
+    if(F.ki!=="all"&&r.ki!==F.ki)return false;
+    if(F.tm!=="all"&&r.tm!==F.tm)return false;
+    if(r.monthSort<mFrom||r.monthSort>mTo)return false;
+    return true;
+  });
+}
+
+// 担当別比較ページ用：担当・取引先フィルターを除いたデータ
+function getWhoPageData(){
+  const mFrom=F.monthFrom==="all"?0:allMonths.find(m=>m.label===F.monthFrom)?.sort||0;
+  const mTo=F.monthTo==="all"?99999:allMonths.find(m=>m.label===F.monthTo)?.sort||99999;
+  return rawData.filter(r=>{
+    if(F.cat.length>0&&!F.cat.includes(r.cat))return false;
+    if(F.st.length>0&&!F.st.includes(r.st))return false;
+    if(F.ki!=="all"&&r.ki!==F.ki)return false;
+    if(F.tm!=="all"&&r.tm!==F.tm)return false;
+    if(F.div!=="all"&&r.div!==F.div)return false;
+    if(r.monthSort<mFrom||r.monthSort>mTo)return false;
+    return true;
+  });
+}
+
+function setFilter(key,val){F[key]=val;render();}
+function resetFilters(){F.cat=[];F.st=[];F.client="all";F.type="all";F.who="all";F.div="all";F.ki="all";F.tm="all";F.monthFrom="all";F.monthTo="all";render();}
+function resetWhoFilters(){F.cat=[];F.st=[];F.ki="all";F.tm="all";F.div="all";F.monthFrom="all";F.monthTo="all";render();}
+
+// フィルターUI生成（グローバルスコープで両ページから使用）
+function chipsHtml(key,vals,maxShow,countMap){
+  let h=`<button class="chip ${F[key]==='all'?'active':''}" onclick="setFilter('${key}','all')">すべて</button>`;
+  const show=maxShow?vals.slice(0,maxShow):vals;
+  show.forEach(v=>{
+    const label=key==='client'?v.replace(/株式会社|有限会社/g,""):v;
+    const cnt=countMap?`<span class="cnt">${countMap[v]||0}</span>`:"";
+    h+=`<button class="chip ${F[key]===v?'active':''}" onclick="setFilter('${key}','${esc(v)}')">${label}${cnt}</button>`;
+  });
+  if(maxShow&&vals.length>maxShow)h+=`<span style="color:var(--dim);font-size:10px;">...他${vals.length-maxShow}件</span>`;
+  return h;
+}
+function multiChipsHtml(key,vals){
+  const sel=F[key];const isAll=sel.length===0;
+  let h=`<button class="chip chip-multi ${isAll?'active':''}" onclick="clearMulti('${key}')">すべて</button>`;
+  vals.forEach(v=>{const isSel=sel.includes(v);h+=`<button class="chip chip-multi ${isSel?'selected':''}" onclick="toggleMulti('${key}','${esc(v)}')">${v}</button>`;});
+  if(!isAll)h+=`<span class="multi-hint">${sel.length}件選択中</span>`;return h;
+}
+function monthSelectHtml(key,label){
+  let h=`<select class="sel" onchange="setFilter('${key}',this.value)"><option value="all">${label}</option>`;
+  allMonths.forEach(m=>{h+=`<option value="${m.label}" ${F[key]===m.label?'selected':''}>${m.label}</option>`;});
+  return h+`</select>`;
+}
+
+function pageTabsHtml(){
+  return `<div class="page-tabs">
+    <button class="page-tab ${F.page==='main'?'active':''}" onclick="F.page='main';render()">売上ダッシュボード</button>
+    <button class="page-tab ${F.page==='who'?'active':''}" onclick="F.page='who';render()">担当別比較</button>
+  </div>`;
+}
+
+function render(){
+  applyFilters();
+  if(F.page==='who'){renderWhoPage();return;}
+
+  const cats=unique(rawData.map(r=>r.cat)),whos=unique(rawData.map(r=>r.who)),divs=unique(rawData.map(r=>r.div)),kis=unique(rawData.map(r=>r.ki)),sts=unique(rawData.map(r=>r.st)),tms=unique(rawData.map(r=>r.tm));
+  const whoCount={};rawData.forEach(r=>{whoCount[r.who]=(whoCount[r.who]||0)+1;});
+  const whoBase=F.who!=="all"?rawData.filter(r=>r.who===F.who):rawData;
+  const clients=unique(whoBase.map(r=>r.client));
+  if(F.client!=="all"&&!clients.includes(F.client)){F.client="all";}
+  const updStr=meta.updated?new Date(meta.updated).toLocaleString("ja-JP"):"-";
+
+  document.getElementById("app").innerHTML=`
+    ${pageTabsHtml()}
+    <div class="header">
+      <div><h1>ヨミクエリ 売上ダッシュボード</h1><div class="sub">リアルタイム連携 ｜ ${filteredData.length.toLocaleString()}件表示 / ${rawData.length.toLocaleString()}件中 ｜ 最終更新: ${updStr}</div></div>
+      <button class="btn" onclick="fetchData()">⟳ 更新</button>
+    </div>
+    <div class="kpi-grid" id="kpis"></div>
+    <div class="filters">
+      <div class="filter-header"><span>フィルター</span><button class="btn" style="padding:3px 10px;font-size:10px;" onclick="F.showFilters=!F.showFilters;render();">${F.showFilters?"閉じる ▲":"開く ▼"}</button></div>
+      <div style="display:${F.showFilters?'block':'none'}">
+        <div class="filter-row"><span class="filter-label">期:</span>${chipsHtml('ki',kis)}</div>
+        <div class="filter-row"><span class="filter-label">ステータス:</span>${multiChipsHtml('st',sts)}</div>
+        <div class="filter-row"><span class="filter-label">計上月:</span><div class="month-range">${monthSelectHtml('monthFrom','開始月')}<span>〜</span>${monthSelectHtml('monthTo','終了月')}</div></div>
+        <div class="filter-row"><span class="filter-label">担当:</span>${chipsHtml('who',whos,null,whoCount)}</div>
+        <div class="filter-row"><span class="filter-label">売上TM:</span>${chipsHtml('tm',tms)}</div>
+        <div class="filter-row"><span class="filter-label">大分類:</span>${multiChipsHtml('cat',cats)}</div>
+        <div class="filter-row"><span class="filter-label">Div:</span>${chipsHtml('div',divs)}</div>
+        <div class="filter-row"><span class="filter-label">費用:</span>
+          <button class="chip ${F.type==='all'?'active':''}" onclick="setFilter('type','all')">すべて</button>
+          <button class="chip ${F.type==='固定費'?'active':''}" onclick="setFilter('type','固定費')">固定費</button>
+          <button class="chip ${F.type==='変動費'?'active':''}" onclick="setFilter('type','変動費')">変動費</button>
+        </div>
+        <div class="filter-row"><span class="filter-label">取引先:</span>${chipsHtml('client',clients,25)}</div>
+        <button class="btn" style="margin-top:6px;font-size:10px;padding:4px 12px;" onclick="resetFilters()">フィルターをリセット</button>
+      </div>
+    </div>
+    <div class="controls-row">
+      <div class="tabs">
+        <button class="tab ${F.tab==='bar'?'active':''}" onclick="F.tab='bar';render();">積み上げ棒</button>
+        <button class="tab ${F.tab==='pie'?'active':''}" onclick="F.tab='pie';render();">円グラフ</button>
+        <button class="tab ${F.tab==='line'?'active':''}" onclick="F.tab='line';render();">推移</button>
+      </div>
+      <div class="stack-row" style="display:${F.tab==='line'?'none':'flex'}">
+        <span class="stack-label">内訳:</span>
+        <button class="chip ${F.stack==='cat'?'active':''}" onclick="F.stack='cat';render();">カテゴリ</button>
+        <button class="chip ${F.stack==='client'?'active':''}" onclick="F.stack='client';render();">取引先</button>
+        <button class="chip ${F.stack==='who'?'active':''}" onclick="F.stack='who';render();">担当</button>
+        <button class="chip ${F.stack==='tm'?'active':''}" onclick="F.stack='tm';render();">売上TM</button>
+        <button class="chip ${F.stack==='div'?'active':''}" onclick="F.stack='div';render();">Div</button>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+    <div class="table-section" id="tableSection"></div>
+    <div class="footer">スプレッドシートからリアルタイム取得 ｜ 「更新」ボタンで最新データを反映</div>
+  `;
+  updateKPIs();
+  updateChart();
+  updateTable();
+}
+
+// ===== 担当別比較ページ =====
+
+function renderWhoPage(){
+  const data=getWhoPageData();
+  const cats=unique(rawData.map(r=>r.cat));
+  const sts=unique(rawData.map(r=>r.st));
+  const kis=unique(rawData.map(r=>r.ki));
+  const tms=unique(rawData.map(r=>r.tm));
+  const divs=unique(rawData.map(r=>r.div));
+  const whoTotals=unique(data.map(r=>r.who)).map(w=>({w,s:sum(data.filter(r=>r.who===w),"amt")})).sort((a,b)=>b.s-a.s);
+  const total=sum(data,"amt");
+  const top=whoTotals[0];
+  const updStr=meta.updated?new Date(meta.updated).toLocaleString("ja-JP"):"-";
+
+  document.getElementById("app").innerHTML=`
+    ${pageTabsHtml()}
+    <div class="header">
+      <div><h1>担当別比較</h1><div class="sub">リアルタイム連携 ｜ ${data.length.toLocaleString()}件 ｜ 最終更新: ${updStr}</div></div>
+      <button class="btn" onclick="fetchData()">⟳ 更新</button>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">総売上（絞込後）</div><div class="kpi-val">${total>=10000?(total/10000).toFixed(2)+"億円":total.toFixed(0)+"万円"}</div><div class="kpi-sub">${data.length.toLocaleString()}件</div></div>
+      <div class="kpi"><div class="kpi-label">担当人数</div><div class="kpi-val">${whoTotals.length}</div><div class="kpi-sub">名</div></div>
+      ${top?`<div class="kpi"><div class="kpi-label">トップ担当</div><div class="kpi-val" style="font-size:16px;">${top.w}</div><div class="kpi-sub">${top.s.toFixed(0)}万円</div></div>`:""}
+    </div>
+    <div class="filters">
+      <div class="filter-header"><span>フィルター（担当・取引先以外）</span><button class="btn" style="padding:3px 10px;font-size:10px;" onclick="F.showFilters=!F.showFilters;render();">${F.showFilters?"閉じる ▲":"開く ▼"}</button></div>
+      <div style="display:${F.showFilters?'block':'none'}">
+        <div class="filter-row"><span class="filter-label">期:</span>${chipsHtml('ki',kis)}</div>
+        <div class="filter-row"><span class="filter-label">ステータス:</span>${multiChipsHtml('st',sts)}</div>
+        <div class="filter-row"><span class="filter-label">計上月:</span><div class="month-range">${monthSelectHtml('monthFrom','開始月')}<span>〜</span>${monthSelectHtml('monthTo','終了月')}</div></div>
+        <div class="filter-row"><span class="filter-label">売上TM:</span>${chipsHtml('tm',tms)}</div>
+        <div class="filter-row"><span class="filter-label">大分類:</span>${multiChipsHtml('cat',cats)}</div>
+        <div class="filter-row"><span class="filter-label">Div:</span>${chipsHtml('div',divs)}</div>
+        <button class="btn" style="margin-top:6px;font-size:10px;padding:4px 12px;" onclick="resetWhoFilters()">フィルターをリセット</button>
+      </div>
+    </div>
+    <div class="two-charts">
+      <div class="chart-wrap chart-wrap-sm"><div class="chart-title">月別売上推移（担当別）</div><canvas id="whoTrendChart"></canvas></div>
+      <div class="chart-wrap chart-wrap-sm"><div class="chart-title">担当別・大分類内訳</div><canvas id="whoBreakdownChart"></canvas></div>
+    </div>
+    <div class="table-section" id="whoTableSection"></div>
+    <div class="footer">スプレッドシートからリアルタイム取得 ｜ 「更新」ボタンで最新データを反映</div>
+  `;
+
+  updateWhoCharts(data, whoTotals);
+  updateWhoTable(data, whoTotals);
+}
+
+function updateWhoCharts(data, whoTotals){
+  const sortedWhos=whoTotals.map(x=>x.w);
+  const cats=unique(data.map(r=>r.cat));
+
+  // 月リストをデータから生成
+  const mSet=new Map();
+  data.forEach(r=>{if(r.month&&r.monthSort)mSet.set(r.month,r.monthSort);});
+  const months=[...mSet.entries()].sort((a,b)=>a[1]-b[1]).map(e=>e[0]);
+  const byMonth=groupBy(data,"month");
+
+  // グラフ1: 月別推移（担当別ライン）
+  const trendCanvas=document.getElementById("whoTrendChart");
+  if(charts.whoTrend)charts.whoTrend.destroy();
+  if(trendCanvas){
+    const top12=sortedWhos.slice(0,12);
+    const ds=top12.map((w,i)=>({
+      label:w,
+      data:months.map(m=>Math.round(sum((byMonth[m]||[]).filter(r=>r.who===w),"amt")*100)/100),
+      borderColor:COLORS[i%COLORS.length],
+      backgroundColor:COLORS[i%COLORS.length]+"33",
+      borderWidth:2,pointRadius:3,fill:false,tension:0.3
+    }));
+    charts.whoTrend=new Chart(trendCanvas,{
+      type:"line",
+      data:{labels:months,datasets:ds},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        scales:{
+          x:{ticks:{color:"#94a3b8",font:{size:9}}},
+          y:{ticks:{color:"#94a3b8",font:{size:9},callback:v=>v+"万"}}
+        },
+        plugins:{
+          legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:9},boxWidth:10}},
+          tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw.toFixed(1)}万円`}}
+        }
+      }
+    });
+  }
+
+  // グラフ2: 担当別・大分類積み上げ棒
+  const breakdownCanvas=document.getElementById("whoBreakdownChart");
+  if(charts.whoBreakdown)charts.whoBreakdown.destroy();
+  if(breakdownCanvas){
+    const top10=sortedWhos.slice(0,10);
+    const catDs=cats.map((cat,i)=>({
+      label:cat,
+      backgroundColor:COLORS[i%COLORS.length],
+      data:top10.map(w=>Math.round(sum(data.filter(r=>r.who===w&&r.cat===cat),"amt")*100)/100)
+    }));
+    charts.whoBreakdown=new Chart(breakdownCanvas,{
+      type:"bar",
+      data:{labels:top10,datasets:catDs},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        scales:{
+          x:{stacked:true,ticks:{color:"#94a3b8",font:{size:9}}},
+          y:{stacked:true,ticks:{color:"#94a3b8",font:{size:9},callback:v=>v+"万"}}
+        },
+        plugins:{
+          legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:9},boxWidth:10}},
+          tooltip:{callbacks:{footer:items=>{const t=items.reduce((s,i)=>s+i.raw,0);return`合計: ${t.toFixed(1)}万円`;}}}
+        }
+      }
+    });
+  }
+}
+
+function updateWhoTable(data, whoTotals){
+  const el=document.getElementById("whoTableSection");if(!el)return;
+  const cats=unique(data.map(r=>r.cat));
+  const sortedWhos=whoTotals.map(x=>x.w);
+
+  let html=`<h2>担当別・大分類内訳（万円）</h2><table class="data-table"><thead><tr><th>担当</th>`;
+  cats.forEach(c=>{html+=`<th>${c}</th>`;});
+  html+=`<th>合計</th></tr></thead><tbody>`;
+
+  sortedWhos.forEach(w=>{
+    const wData=data.filter(r=>r.who===w);
+    const total=sum(wData,"amt");
+    html+=`<tr><td>${w}</td>`;
+    cats.forEach(c=>{
+      const v=Math.round(sum(wData.filter(r=>r.cat===c),"amt")*100)/100;
+      html+=`<td class="${v===0?'zero':''}">${v>0?v.toFixed(1):'-'}</td>`;
+    });
+    html+=`<td>${total.toFixed(1)}</td></tr>`;
+  });
+
+  html+=`<tr class="total-row"><td>合計</td>`;
+  cats.forEach(c=>{const v=Math.round(sum(data.filter(r=>r.cat===c),"amt")*100)/100;html+=`<td>${v>0?v.toFixed(1):'-'}</td>`;});
+  html+=`<td>${sum(data,"amt").toFixed(1)}</td></tr>`;
+  html+=`</tbody></table>`;
+  el.innerHTML=html;
+}
+
+// ===== 売上ダッシュボードページ =====
+
+function updateKPIs(){
+  const total=sum(filteredData,"amt"),fixed=sum(filteredData.filter(r=>r.type==="固定費"),"amt"),variable=sum(filteredData.filter(r=>r.type==="変動費"),"amt");
+  const nC=unique(filteredData.map(r=>r.client)).length,nW=unique(filteredData.map(r=>r.who)).length,nTM=unique(filteredData.map(r=>r.tm)).length;
+  const el=document.getElementById("kpis");if(!el)return;
+  const fmt=total>=10000?`${(total/10000).toFixed(2)}億円`:`${total.toFixed(0)}万円`;
+  el.innerHTML=`
+    <div class="kpi"><div class="kpi-label">総売上</div><div class="kpi-val">${fmt}</div><div class="kpi-sub">${filteredData.length.toLocaleString()}件</div></div>
+    <div class="kpi"><div class="kpi-label">固定費</div><div class="kpi-val">${fixed.toFixed(0)}万円</div><div class="kpi-sub">${total>0?Math.round(fixed/total*100):0}%</div></div>
+    <div class="kpi"><div class="kpi-label">変動費</div><div class="kpi-val">${variable.toFixed(0)}万円</div><div class="kpi-sub">${total>0?Math.round(variable/total*100):0}%</div></div>
+    <div class="kpi"><div class="kpi-label">担当者</div><div class="kpi-val">${nW}</div><div class="kpi-sub">名</div></div>
+    <div class="kpi"><div class="kpi-label">取引先</div><div class="kpi-val">${nC}</div><div class="kpi-sub">社</div></div>`;
+}
+
+function getMonths(){
+  const ms=unique(filteredData.map(r=>r.month));
+  return ms.sort((a,b)=>{const pa=parseMonth(a),pb=parseMonth(b);return(pa?pa.sort:0)-(pb?pb.sort:0);});
+}
+
+function updateChart(){
+  const canvas=document.getElementById("mainChart");if(!canvas)return;
+  if(charts.main)charts.main.destroy();
+  const months=getMonths(),byMonth=groupBy(filteredData,"month"),sf=F.stack;
+  if(F.tab==="bar"){
+    const sv=unique(filteredData.map(r=>r[sf]));
+    const divTotals={},tmTotals={};
+    filteredData.forEach(r=>{divTotals[r.div]=(divTotals[r.div]||0)+r.amt;tmTotals[r.tm]=(tmTotals[r.tm]||0)+r.amt;});
+    const vs=sv.map(v=>{
+      const cd=filteredData.filter(r=>r[sf]===v);
+      const s=sum(cd,"amt");
+      const first=cd[0]||{};
+      return{v,s,div:first.div||"",tm:first.tm||""};
+    }).sort((a,b)=>{
+      if(sf==='cat'){
+        const dd=(divTotals[b.div]||0)-(divTotals[a.div]||0);if(dd!==0)return dd;
+        const td=(tmTotals[b.tm]||0)-(tmTotals[a.tm]||0);if(td!==0)return td;
+      }
+      return b.s-a.s;
+    });
+    const top=vs.slice(0,14).map(x=>x.v);
+    const ds=top.map((v,i)=>({label:v,backgroundColor:COLORS[i%COLORS.length],data:months.map(m=>{const items=(byMonth[m]||[]).filter(r=>r[sf]===v);return Math.round(sum(items,"amt")*100)/100;})}));
+    charts.main=new Chart(canvas,{type:"bar",data:{labels:months,datasets:ds},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{color:"#94a3b8",font:{size:10}}},y:{stacked:true,ticks:{color:"#94a3b8",font:{size:10},callback:v=>v+"万"}}},plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{const t=items.reduce((s,i)=>s+i.raw,0);return`合計: ${t.toFixed(1)}万円`;}}}}}});
+  }else if(F.tab==="pie"){
+    const sv=unique(filteredData.map(r=>r[sf]));
+    const pd=sv.map(v=>({v,s:Math.round(sum(filteredData.filter(r=>r[sf]===v),"amt")*100)/100})).sort((a,b)=>b.s-a.s).slice(0,14);
+    const totalPie=pd.reduce((s,d)=>s+d.s,0);
+    charts.main=new Chart(canvas,{type:"doughnut",data:{labels:pd.map(d=>d.v),datasets:[{data:pd.map(d=>d.s),backgroundColor:COLORS.slice(0,pd.length)}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:9},boxWidth:10}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw.toFixed(1)}万円 (${(ctx.raw/totalPie*100).toFixed(0)}%)`}}}}});
+  }else if(F.tab==="line"){
+    const td=months.map(m=>Math.round(sum(byMonth[m]||[],"amt")*100)/100);
+    const fd=months.map(m=>Math.round(sum((byMonth[m]||[]).filter(r=>r.type==="固定費"),"amt")*100)/100);
+    const vd=months.map(m=>Math.round(sum((byMonth[m]||[]).filter(r=>r.type==="変動費"),"amt")*100)/100);
+    charts.main=new Chart(canvas,{type:"line",data:{labels:months,datasets:[{label:"合計",data:td,borderColor:"#6366f1",borderWidth:2.5,pointRadius:3,fill:false},{label:"固定費",data:fd,borderColor:"#10b981",borderWidth:2,pointRadius:2.5,fill:false},{label:"変動費",data:vd,borderColor:"#f59e0b",borderWidth:2,pointRadius:2.5,fill:false}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:"#94a3b8",font:{size:10}}},y:{ticks:{color:"#94a3b8",font:{size:10},callback:v=>v+"万"}}},plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:10}}}}}});
+  }
+}
+
+function updateTable(){
+  const el=document.getElementById("tableSection");if(!el)return;
+  const months=getMonths();
+  const sf=F.stack;
+  const stackLabels={cat:"カテゴリ",client:"取引先",who:"担当",tm:"売上TM",div:"Div"};
+  const byMonth=groupBy(filteredData,"month");
+
+  if(F.tab==="line"){
+    const types=["固定費","変動費"];
+    let html=`<h2>月別 固定費／変動費 データ（万円）</h2><table class="data-table"><thead><tr><th>費用タイプ</th>`;
+    months.forEach(m=>{html+=`<th>${m}</th>`;});
+    html+=`<th>合計</th></tr></thead><tbody>`;
+    types.forEach(t=>{
+      let rowTotal=0;
+      html+=`<tr><td>${t}</td>`;
+      months.forEach(m=>{const v=Math.round(sum((byMonth[m]||[]).filter(r=>r.type===t),"amt")*100)/100;rowTotal+=v;html+=`<td class="${v===0?'zero':''}">${v>0?v.toFixed(1):'-'}</td>`;});
+      html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
+    });
+    let grandTotal=0;
+    html+=`<tr class="total-row"><td>合計</td>`;
+    months.forEach(m=>{const v=Math.round(sum(byMonth[m]||[],"amt")*100)/100;grandTotal+=v;html+=`<td>${v.toFixed(1)}</td>`;});
+    html+=`<td>${grandTotal.toFixed(1)}</td></tr>`;
+    html+=`</tbody></table>`;
+    el.innerHTML=html;
+    return;
+  }
+
+  const sv=unique(filteredData.map(r=>r[sf]));
+  const divTotals2={},tmTotals2={};
+  filteredData.forEach(r=>{divTotals2[r.div]=(divTotals2[r.div]||0)+r.amt;tmTotals2[r.tm]=(tmTotals2[r.tm]||0)+r.amt;});
+  const vs=sv.map(v=>{const cd=filteredData.filter(r=>r[sf]===v);const first=cd[0]||{};return{v,s:sum(cd,"amt"),div:first.div||"",tm:first.tm||""};}).sort((a,b)=>{
+    if(sf==='cat'){const dd=(divTotals2[b.div]||0)-(divTotals2[a.div]||0);if(dd!==0)return dd;const td=(tmTotals2[b.tm]||0)-(tmTotals2[a.tm]||0);if(td!==0)return td;}
+    return b.s-a.s;
+  });
+
+  let html=`<h2>月別 ${stackLabels[sf]||sf} データ（万円）</h2><table class="data-table"><thead><tr><th>${stackLabels[sf]||sf}</th>`;
+  months.forEach(m=>{html+=`<th>${m}</th>`;});
+  html+=`<th>合計</th></tr></thead><tbody>`;
+
+  const divColors=['rgba(99,102,241,.15)','rgba(16,185,129,.15)','rgba(245,158,11,.15)','rgba(239,68,68,.15)','rgba(6,182,212,.15)','rgba(168,85,247,.15)','rgba(249,115,22,.15)'];
+  const divColorMap={};let divColorIdx=0;
+  vs.forEach(({v,div})=>{
+    if(sf==='cat'&&!(div in divColorMap))divColorMap[div]=divColors[divColorIdx++%divColors.length];
+    let rowTotal=0;
+    const label=sf==='client'?v.replace(/株式会社|有限会社/g,""):v;
+    const bgStyle=sf==='cat'?`style="background:${divColorMap[div]}"` :"";
+    html+=`<tr ${bgStyle}><td title="${v}">${label}</td>`;
+    months.forEach(m=>{
+      const items=(byMonth[m]||[]).filter(r=>r[sf]===v);
+      const val=Math.round(sum(items,"amt")*100)/100;
+      rowTotal+=val;
+      html+=`<td class="${val===0?'zero':''}">${val>0?val.toFixed(1):'-'}</td>`;
+    });
+    html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
+  });
+
+  let grandTotal=0;
+  html+=`<tr class="total-row"><td>合計</td>`;
+  months.forEach(m=>{const v=Math.round(sum(byMonth[m]||[],"amt")*100)/100;grandTotal+=v;html+=`<td>${v.toFixed(1)}</td>`;});
+  html+=`<td>${grandTotal.toFixed(1)}</td></tr>`;
+  html+=`</tbody></table>`;
+  el.innerHTML=html;
+}
+
+fetchData();
+</script>
+</body>
+</html>
