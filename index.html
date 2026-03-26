@@ -71,10 +71,29 @@
     @media(max-width:900px){.two-charts{grid-template-columns:1fr;}}
     .chart-wrap-sm canvas{min-height:320px;max-height:400px;}
     .chart-title{font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text);}
+    /* Password screen */
+    .pw-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px;}
+    .pw-box{background:var(--surface);border-radius:16px;padding:36px 32px;display:flex;flex-direction:column;gap:14px;min-width:300px;text-align:center;}
+    .pw-title{font-size:18px;font-weight:800;}
+    .pw-sub{color:var(--dim);font-size:12px;}
+    .pw-input{padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;text-align:center;letter-spacing:2px;outline:none;}
+    .pw-input:focus{border-color:var(--accent);}
+    .pw-btn{padding:10px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;}
+    .pw-btn:hover{opacity:.85;}
+    .pw-error{color:var(--red);font-size:12px;min-height:16px;}
   </style>
 </head>
 <body>
-<div id="app">
+<div id="pw-screen" class="pw-screen">
+  <div class="pw-box">
+    <div class="pw-title">ヨミクエリ 売上ダッシュボード</div>
+    <div class="pw-sub">パスワードを入力してください</div>
+    <input class="pw-input" type="password" id="pw-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPw()">
+    <button class="pw-btn" onclick="checkPw()">ログイン</button>
+    <div class="pw-error" id="pw-error"></div>
+  </div>
+</div>
+<div id="app" style="display:none">
   <div class="loading"><div class="spinner">⟳</div><div style="font-size:16px;font-weight:700;">データを読み込み中...</div><div style="font-size:12px;color:var(--dim);margin-top:4px;">スプレッドシートからリアルタイム取得</div></div>
 </div>
 <script>
@@ -504,7 +523,24 @@ function updateTable(){
   el.innerHTML=html;
 }
 
-fetchData();
+function checkPw(){
+  const val=document.getElementById("pw-input").value;
+  if(val==="yomishukeitest"){
+    sessionStorage.setItem("auth","ok");
+    document.getElementById("pw-screen").style.display="none";
+    document.getElementById("app").style.display="block";
+    fetchData();
+  }else{
+    document.getElementById("pw-error").textContent="パスワードが違います";
+    document.getElementById("pw-input").value="";
+  }
+}
+
+if(sessionStorage.getItem("auth")==="ok"){
+  document.getElementById("pw-screen").style.display="none";
+  document.getElementById("app").style.display="block";
+  fetchData();
+}
 </script>
 </body>
 </html>
