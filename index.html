@@ -245,7 +245,7 @@ function render(){
   document.getElementById("app").innerHTML=`
     ${pageTabsHtml()}
     <div class="header">
-      <div><h1>ヨミクエリ 売上ダッシュボード</h1><div class="sub">リアルタイム連携 ｜ ${filteredData.length.toLocaleString()}件表示 / ${rawData.length.toLocaleString()}件中 ｜ 最終更新: ${updStr}</div></div>
+      <div><div class="sub">リアルタイム連携 ｜ ${filteredData.length.toLocaleString()}件表示 / ${rawData.length.toLocaleString()}件中 ｜ 最終更新: ${updStr}</div></div>
       <button class="btn" onclick="fetchData()">⟳ 更新</button>
     </div>
     ${salesTabsHtml()}
@@ -313,7 +313,7 @@ function renderWhoPage(){
   document.getElementById("app").innerHTML=`
     ${pageTabsHtml()}
     <div class="header">
-      <div><h1>ヨミクエリ 売上ダッシュボード</h1><div class="sub">リアルタイム連携 ｜ ${data.length.toLocaleString()}件 ｜ 最終更新: ${updStr}</div></div>
+      <div><div class="sub">リアルタイム連携 ｜ ${data.length.toLocaleString()}件 ｜ 最終更新: ${updStr}</div></div>
       <button class="btn" onclick="fetchData()">⟳ 更新</button>
     </div>
     ${salesTabsHtml()}
@@ -700,7 +700,7 @@ function renderClPage(){
   document.getElementById("app").innerHTML=`
     ${pageTabsHtml()}
     <div class="header">
-      <div><h1>CL情報</h1><div class="sub">リアルタイム連携 ｜ ${companies.length}社 / ${allCompanies.length}社中 ｜ 最終更新: ${updStr}</div></div>
+      <div><div class="sub">リアルタイム連携 ｜ ${companies.length}社 / ${allCompanies.length}社中 ｜ 最終更新: ${updStr}</div></div>
       <button class="btn" onclick="fetchData()">⟳ 更新</button>
     </div>
     <div class="kpi-grid">
