@@ -32,6 +32,13 @@
     .chip-multi{border:1.5px solid transparent;}
     .chip-multi.active{background:var(--accent);color:#fff;border-color:var(--accent);}
     .chip-multi.selected{background:rgba(99,102,241,.2);color:var(--accent);border-color:var(--accent);}
+    .chip-all{background:rgba(20,184,166,.15);color:#0d9488;border:1.5px solid rgba(20,184,166,.3);}
+    .chip-all.active{background:#14b8a6;color:#fff;border-color:#14b8a6;}
+    .expand-icon{display:inline-block;transition:transform .2s;margin-right:5px;font-size:9px;opacity:.7;}
+    tr.cat-row{cursor:pointer;}tr.cat-row:hover td:first-child .expand-icon{opacity:1;}
+    tr.cat-row.expanded .expand-icon{transform:rotate(90deg);}
+    tr.prod-row td:first-child{padding-left:26px;color:var(--dim);font-size:10px;}
+    tr.prod-row td{font-size:10px;}
     .multi-hint{color:var(--dim);font-size:9px;font-style:italic;margin-left:4px;}
     .sel{padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;appearance:auto;}
     .sel:focus{outline:1px solid var(--accent);}
@@ -97,14 +104,15 @@
   <div class="loading"><div class="spinner">⟳</div><div style="font-size:16px;font-weight:700;">データを読み込み中...</div><div style="font-size:12px;color:var(--dim);margin-top:4px;">スプレッドシートからリアルタイム取得</div></div>
 </div>
 <script>
-const API_URL="https://script.google.com/macros/s/AKfycbyJR62yMpbSixeQUxDbbFs_6MFlMW055oz4XOGwmcCo9XShrFcmaU026aUdnc_LN_px-A/exec";
+const API_URL="https://script.google.com/macros/s/AKfycbyaGCwuIUf6v2-1uLUARXMwkg6RGArfX_JD1hEczcqclofGOQaRwycKEuu-iN3q0VuGMw/exec";
 const API_KEY="yomi-shukei-test";
 const COLORS=["#6366f1","#f59e0b","#10b981","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#06b6d4","#84cc16","#a855f7","#e11d48","#0ea5e9","#65a30d"];
 
 let rawData=[], filteredData=[], allMonths=[];
+let companyMap={};
 let meta={updated:"",count:0};
 let charts={};
-let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",showFilters:true,page:"main"};
+let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:"all",clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
 
 function parseMonth(v){
   if(!v)return null;const s=String(v);let y,m;
@@ -118,6 +126,10 @@ function groupBy(arr,key){return arr.reduce((g,r)=>{const k=r[key]||"";(g[k]=g[k
 function esc(s){return s.replace(/'/g,"\\'").replace(/"/g,"&quot;");}
 function toggleMulti(key,val){const arr=F[key];const idx=arr.indexOf(val);if(idx===-1)arr.push(val);else arr.splice(idx,1);render();}
 function clearMulti(key){F[key]=[];render();}
+const SEG_ORDER_CL=["超ヘビー","ヘビー","M1","M2","ライト","FC","HM","その他"];
+function segSortCl(vals){return[...vals].sort((a,b)=>{const ia=SEG_ORDER_CL.findIndex(k=>a.includes(k)||k.includes(a));const ib=SEG_ORDER_CL.findIndex(k=>b.includes(k)||k.includes(b));if(ia===-1&&ib===-1)return a.localeCompare(b,"ja");if(ia===-1)return 1;if(ib===-1)return -1;return ia-ib;});}
+const PREF_ORDER=["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
+function geoSort(vals){return[...vals].sort((a,b)=>{const ia=PREF_ORDER.findIndex(p=>a.includes(p));const ib=PREF_ORDER.findIndex(p=>b.includes(p));if(ia===-1&&ib===-1)return a.localeCompare(b,"ja");if(ia===-1)return 1;if(ib===-1)return -1;return ia-ib;});}
 
 async function fetchData(){
   document.getElementById("app").innerHTML=`<div class="loading"><div class="spinner">⟳</div><div style="font-size:16px;font-weight:700;">データを読み込み中...</div><div style="font-size:12px;color:var(--dim);margin-top:4px;">スプレッドシートからリアルタイム取得</div></div>`;
@@ -125,7 +137,9 @@ async function fetchData(){
     const res=await fetch(`${API_URL}?key=${API_KEY}`);const json=await res.json();
     if(!json.success)throw new Error(json.error);
     meta.updated=json.updated;meta.count=json.count;
-    rawData=json.data.map(r=>{const pm=parseMonth(r["計上月"]);return{cd:r["ヨミコード"]||"",who:r["担当"]||"",client:r["取引先"]||"",month:pm?pm.label:"",monthSort:pm?pm.sort:0,prod:r["商品名"]||"",amt:parseFloat(r["売上(万円)"])||0,st:r["ステータス"]||"",cat:r["大分類"]||"",type:r["製品タイプ"]||"",tm:r["売上TM"]||"",div:r["売上Div"]||"",ki:r["期"]||""};});
+    companyMap={};
+    (json.companies||[]).forEach(c=>{if(c["会社名"])companyMap[c["会社名"]]=c;});
+    rawData=json.data.map(r=>{const pm=parseMonth(r["計上月"]);const co=companyMap[r["取引先"]]||{};return{cd:r["ヨミコード"]||"",who:r["担当"]||"",client:r["取引先"]||"",month:pm?pm.label:"",monthSort:pm?pm.sort:0,prod:r["商品名"]||"",amt:parseFloat(r["売上(万円)"])||0,st:r["ステータス"]||"",cat:r["大分類"]||"",type:r["製品タイプ"]||"",tm:r["売上TM"]||"",div:r["売上Div"]||"",ki:r["期"]||"",clientSt:co["取引状況"]||"",clientPref:co["都道府県／地域"]||"",clientArea:co["施工エリア"]||"",clientSeg:co["棟数セグメント"]||""};});
     const mSet=new Map();rawData.forEach(r=>{if(r.month&&r.monthSort)mSet.set(r.month,r.monthSort);});
     allMonths=[...mSet.entries()].sort((a,b)=>a[1]-b[1]).map(e=>({label:e[0],sort:e[1]}));
     render();
@@ -144,6 +158,10 @@ function applyFilters(){
     if(F.div!=="all"&&r.div!==F.div)return false;
     if(F.ki!=="all"&&r.ki!==F.ki)return false;
     if(F.tm!=="all"&&r.tm!==F.tm)return false;
+    if(F.clientSt!=="all"&&r.clientSt!==F.clientSt)return false;
+    if(F.clientPref.length>0&&!F.clientPref.includes(r.clientPref))return false;
+    if(F.clientArea.length>0&&!F.clientArea.some(a=>(r.clientArea||"").split(/[；;]/).map(s=>s.trim()).includes(a)))return false;
+    if(F.clientSeg!=="all"&&r.clientSeg!==F.clientSeg)return false;
     if(r.monthSort<mFrom||r.monthSort>mTo)return false;
     return true;
   });
@@ -151,26 +169,32 @@ function applyFilters(){
 
 // 担当別比較ページ用：担当・取引先フィルターを除いたデータ
 function getWhoPageData(){
-  const mFrom=F.monthFrom==="all"?0:allMonths.find(m=>m.label===F.monthFrom)?.sort||0;
-  const mTo=F.monthTo==="all"?99999:allMonths.find(m=>m.label===F.monthTo)?.sort||99999;
+  const mFrom=F.whoMonthFrom==="all"?0:allMonths.find(m=>m.label===F.whoMonthFrom)?.sort||0;
+  const mTo=F.whoMonthTo==="all"?99999:allMonths.find(m=>m.label===F.whoMonthTo)?.sort||99999;
   return rawData.filter(r=>{
-    if(F.cat.length>0&&!F.cat.includes(r.cat))return false;
-    if(F.st.length>0&&!F.st.includes(r.st))return false;
-    if(F.ki!=="all"&&r.ki!==F.ki)return false;
-    if(F.tm!=="all"&&r.tm!==F.tm)return false;
-    if(F.div!=="all"&&r.div!==F.div)return false;
+    if(F.whoCat.length>0&&!F.whoCat.includes(r.cat))return false;
+    if(F.whoSt.length>0&&!F.whoSt.includes(r.st))return false;
+    if(F.whoKi!=="all"&&r.ki!==F.whoKi)return false;
+    if(F.whoTm!=="all"&&r.tm!==F.whoTm)return false;
+    if(F.whoDiv!=="all"&&r.div!==F.whoDiv)return false;
     if(r.monthSort<mFrom||r.monthSort>mTo)return false;
     return true;
   });
 }
 
 function setFilter(key,val){F[key]=val;render();}
-function resetFilters(){F.cat=[];F.st=[];F.client="all";F.type="all";F.who="all";F.div="all";F.ki="all";F.tm="all";F.monthFrom="all";F.monthTo="all";render();}
-function resetWhoFilters(){F.cat=[];F.st=[];F.ki="all";F.tm="all";F.div="all";F.monthFrom="all";F.monthTo="all";render();}
+function toggleProdRows(idx){
+  const catRow=document.getElementById(`cat-row-${idx}`);if(!catRow)return;
+  const isExp=catRow.classList.contains('expanded');
+  document.querySelectorAll(`.prod-row-${idx}`).forEach(r=>r.style.display=isExp?'none':'');
+  catRow.classList.toggle('expanded',!isExp);
+}
+function resetFilters(){F.cat=[];F.st=[];F.client="all";F.type="all";F.who="all";F.div="all";F.ki="all";F.tm="all";F.monthFrom="all";F.monthTo="all";F.clientSt="all";F.clientPref=[];F.clientArea=[];F.clientSeg="all";render();}
+function resetWhoFilters(){F.whoCat=[];F.whoSt=[];F.whoKi="all";F.whoTm="all";F.whoDiv="all";F.whoMonthFrom="all";F.whoMonthTo="all";render();}
 
 // フィルターUI生成（グローバルスコープで両ページから使用）
 function chipsHtml(key,vals,maxShow,countMap){
-  let h=`<button class="chip ${F[key]==='all'?'active':''}" onclick="setFilter('${key}','all')">すべて</button>`;
+  let h=`<button class="chip chip-all ${F[key]==='all'?'active':''}" onclick="setFilter('${key}','all')">すべて</button>`;
   const show=maxShow?vals.slice(0,maxShow):vals;
   show.forEach(v=>{
     const label=key==='client'?v.replace(/株式会社|有限会社/g,""):v;
@@ -182,7 +206,7 @@ function chipsHtml(key,vals,maxShow,countMap){
 }
 function multiChipsHtml(key,vals){
   const sel=F[key];const isAll=sel.length===0;
-  let h=`<button class="chip chip-multi ${isAll?'active':''}" onclick="clearMulti('${key}')">すべて</button>`;
+  let h=`<button class="chip chip-all chip-multi ${isAll?'active':''}" onclick="clearMulti('${key}')">すべて</button>`;
   vals.forEach(v=>{const isSel=sel.includes(v);h+=`<button class="chip chip-multi ${isSel?'selected':''}" onclick="toggleMulti('${key}','${esc(v)}')">${v}</button>`;});
   if(!isAll)h+=`<span class="multi-hint">${sel.length}件選択中</span>`;return h;
 }
@@ -194,16 +218,24 @@ function monthSelectHtml(key,label){
 
 function pageTabsHtml(){
   return `<div class="page-tabs">
-    <button class="page-tab ${F.page==='main'?'active':''}" onclick="F.page='main';render()">売上ダッシュボード</button>
-    <button class="page-tab ${F.page==='who'?'active':''}" onclick="F.page='who';render()">担当別比較</button>
+    <button class="page-tab ${F.page==='main'?'active':''}" onclick="F.page='main';render()">売上</button>
+    <button class="page-tab ${F.page==='cl'?'active':''}" onclick="F.page='cl';render()">CL情報</button>
+  </div>`;
+}
+function salesTabsHtml(){
+  return `<div class="tabs" style="margin-bottom:0;">
+    <button class="tab ${F.salesTab==='overview'?'active':''}" onclick="F.salesTab='overview';render();">全体</button>
+    <button class="tab ${F.salesTab==='who'?'active':''}" onclick="F.salesTab='who';render();">担当者別</button>
   </div>`;
 }
 
 function render(){
   applyFilters();
-  if(F.page==='who'){renderWhoPage();return;}
+  if(F.page==='cl'){renderClPage();return;}
+  if(F.salesTab==='who'){renderWhoPage();return;}
 
   const cats=unique(rawData.map(r=>r.cat)),whos=unique(rawData.map(r=>r.who)),divs=unique(rawData.map(r=>r.div)),kis=unique(rawData.map(r=>r.ki)),sts=unique(rawData.map(r=>r.st)),tms=unique(rawData.map(r=>r.tm));
+  const clientSts=unique(rawData.map(r=>r.clientSt)),clientPrefs=geoSort(unique(rawData.map(r=>r.clientPref)).filter(Boolean)),clientAreas=geoSort(unique(rawData.flatMap(r=>(r.clientArea||"").split(/[；;]/).map(s=>s.trim()).filter(Boolean)))),clientSegs=unique(rawData.map(r=>r.clientSeg));
   const whoCount={};rawData.forEach(r=>{whoCount[r.who]=(whoCount[r.who]||0)+1;});
   const whoBase=F.who!=="all"?rawData.filter(r=>r.who===F.who):rawData;
   const clients=unique(whoBase.map(r=>r.client));
@@ -216,6 +248,7 @@ function render(){
       <div><h1>ヨミクエリ 売上ダッシュボード</h1><div class="sub">リアルタイム連携 ｜ ${filteredData.length.toLocaleString()}件表示 / ${rawData.length.toLocaleString()}件中 ｜ 最終更新: ${updStr}</div></div>
       <button class="btn" onclick="fetchData()">⟳ 更新</button>
     </div>
+    ${salesTabsHtml()}
     <div class="kpi-grid" id="kpis"></div>
     <div class="filters">
       <div class="filter-header"><span>フィルター</span><button class="btn" style="padding:3px 10px;font-size:10px;" onclick="F.showFilters=!F.showFilters;render();">${F.showFilters?"閉じる ▲":"開く ▼"}</button></div>
@@ -228,27 +261,30 @@ function render(){
         <div class="filter-row"><span class="filter-label">大分類:</span>${multiChipsHtml('cat',cats)}</div>
         <div class="filter-row"><span class="filter-label">Div:</span>${chipsHtml('div',divs)}</div>
         <div class="filter-row"><span class="filter-label">費用:</span>
-          <button class="chip ${F.type==='all'?'active':''}" onclick="setFilter('type','all')">すべて</button>
+          <button class="chip chip-all ${F.type==='all'?'active':''}" onclick="setFilter('type','all')">すべて</button>
           <button class="chip ${F.type==='固定費'?'active':''}" onclick="setFilter('type','固定費')">固定費</button>
           <button class="chip ${F.type==='変動費'?'active':''}" onclick="setFilter('type','変動費')">変動費</button>
         </div>
         <div class="filter-row"><span class="filter-label">取引先:</span>${chipsHtml('client',clients,25)}</div>
+        <div class="filter-row"><span class="filter-label">都道府県:</span>${multiChipsHtml('clientPref',clientPrefs)}</div>
+        <div class="filter-row"><span class="filter-label">施工エリア:</span>${multiChipsHtml('clientArea',clientAreas)}</div>
+        <div class="filter-row"><span class="filter-label">棟数セグメント:</span>${chipsHtml('clientSeg',clientSegs)}</div>
         <button class="btn" style="margin-top:6px;font-size:10px;padding:4px 12px;" onclick="resetFilters()">フィルターをリセット</button>
       </div>
     </div>
     <div class="controls-row">
       <div class="tabs">
-        <button class="tab ${F.tab==='bar'?'active':''}" onclick="F.tab='bar';render();">積み上げ棒</button>
-        <button class="tab ${F.tab==='pie'?'active':''}" onclick="F.tab='pie';render();">円グラフ</button>
-        <button class="tab ${F.tab==='line'?'active':''}" onclick="F.tab='line';render();">推移</button>
+        <button class="tab ${F.tab==='bar'?'active':''}" onclick="F.tab='bar';render();">推移</button>
+        <button class="tab ${F.tab==='pie'?'active':''}" onclick="F.tab='pie';render();">シェア</button>
       </div>
-      <div class="stack-row" style="display:${F.tab==='line'?'none':'flex'}">
+      <div class="stack-row" style="display:flex">
         <span class="stack-label">内訳:</span>
         <button class="chip ${F.stack==='cat'?'active':''}" onclick="F.stack='cat';render();">カテゴリ</button>
         <button class="chip ${F.stack==='client'?'active':''}" onclick="F.stack='client';render();">取引先</button>
         <button class="chip ${F.stack==='who'?'active':''}" onclick="F.stack='who';render();">担当</button>
         <button class="chip ${F.stack==='tm'?'active':''}" onclick="F.stack='tm';render();">売上TM</button>
         <button class="chip ${F.stack==='div'?'active':''}" onclick="F.stack='div';render();">Div</button>
+        <button class="chip ${F.stack==='type'?'active':''}" onclick="F.stack='type';render();">固定/変動</button>
       </div>
     </div>
     <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
@@ -277,9 +313,10 @@ function renderWhoPage(){
   document.getElementById("app").innerHTML=`
     ${pageTabsHtml()}
     <div class="header">
-      <div><h1>担当別比較</h1><div class="sub">リアルタイム連携 ｜ ${data.length.toLocaleString()}件 ｜ 最終更新: ${updStr}</div></div>
+      <div><h1>ヨミクエリ 売上ダッシュボード</h1><div class="sub">リアルタイム連携 ｜ ${data.length.toLocaleString()}件 ｜ 最終更新: ${updStr}</div></div>
       <button class="btn" onclick="fetchData()">⟳ 更新</button>
     </div>
+    ${salesTabsHtml()}
     <div class="kpi-grid">
       <div class="kpi"><div class="kpi-label">総売上（絞込後）</div><div class="kpi-val">${total>=10000?(total/10000).toFixed(2)+"億円":total.toFixed(0)+"万円"}</div><div class="kpi-sub">${data.length.toLocaleString()}件</div></div>
       <div class="kpi"><div class="kpi-label">担当人数</div><div class="kpi-val">${whoTotals.length}</div><div class="kpi-sub">名</div></div>
@@ -288,30 +325,33 @@ function renderWhoPage(){
     <div class="filters">
       <div class="filter-header"><span>フィルター（担当・取引先以外）</span><button class="btn" style="padding:3px 10px;font-size:10px;" onclick="F.showFilters=!F.showFilters;render();">${F.showFilters?"閉じる ▲":"開く ▼"}</button></div>
       <div style="display:${F.showFilters?'block':'none'}">
-        <div class="filter-row"><span class="filter-label">期:</span>${chipsHtml('ki',kis)}</div>
-        <div class="filter-row"><span class="filter-label">ステータス:</span>${multiChipsHtml('st',sts)}</div>
-        <div class="filter-row"><span class="filter-label">計上月:</span><div class="month-range">${monthSelectHtml('monthFrom','開始月')}<span>〜</span>${monthSelectHtml('monthTo','終了月')}</div></div>
-        <div class="filter-row"><span class="filter-label">売上TM:</span>${chipsHtml('tm',tms)}</div>
-        <div class="filter-row"><span class="filter-label">大分類:</span>${multiChipsHtml('cat',cats)}</div>
-        <div class="filter-row"><span class="filter-label">Div:</span>${chipsHtml('div',divs)}</div>
+        <div class="filter-row"><span class="filter-label">期:</span>${chipsHtml('whoKi',kis)}</div>
+        <div class="filter-row"><span class="filter-label">ステータス:</span>${multiChipsHtml('whoSt',sts)}</div>
+        <div class="filter-row"><span class="filter-label">計上月:</span><div class="month-range">${monthSelectHtml('whoMonthFrom','開始月')}<span>〜</span>${monthSelectHtml('whoMonthTo','終了月')}</div></div>
+        <div class="filter-row"><span class="filter-label">売上TM:</span>${chipsHtml('whoTm',tms)}</div>
+        <div class="filter-row"><span class="filter-label">大分類:</span>${multiChipsHtml('whoCat',cats)}</div>
+        <div class="filter-row"><span class="filter-label">Div:</span>${chipsHtml('whoDiv',divs)}</div>
         <button class="btn" style="margin-top:6px;font-size:10px;padding:4px 12px;" onclick="resetWhoFilters()">フィルターをリセット</button>
       </div>
     </div>
-    <div class="two-charts">
-      <div class="chart-wrap chart-wrap-sm"><div class="chart-title">月別売上推移（担当別）</div><canvas id="whoTrendChart"></canvas></div>
-      <div class="chart-wrap chart-wrap-sm"><div class="chart-title">担当別・大分類内訳</div><canvas id="whoBreakdownChart"></canvas></div>
-    </div>
-    <div class="table-section" id="whoTableSection"></div>
+    <div class="chart-wrap" style="margin-bottom:18px;"><div class="chart-title">月別売上推移（担当別）</div><canvas id="whoTrendChart" style="min-height:320px;max-height:400px;"></canvas></div>
+    <div class="chart-wrap"><div class="chart-title">担当別・大分類内訳</div><canvas id="whoBreakdownChart" style="min-height:320px;max-height:400px;"></canvas><div id="whoTableSection" style="margin-top:12px;overflow-x:auto;"></div></div>
+    <div class="chart-wrap"><div class="chart-title">担当者別・1社あたり売上単価（Jヨミ）（万円）</div><div id="whoUnitPriceTableSection" style="overflow-x:auto;"></div></div>
+    <div class="chart-wrap"><div class="chart-title">担当者別・固定/変動内訳（万円）</div><div id="whoTypeTableSection" style="overflow-x:auto;"></div></div>
     <div class="footer">スプレッドシートからリアルタイム取得 ｜ 「更新」ボタンで最新データを反映</div>
   `;
 
   updateWhoCharts(data, whoTotals);
   updateWhoTable(data, whoTotals);
+  updateWhoUnitPriceTable(data, whoTotals);
+  updateWhoTypeTable(data, whoTotals);
 }
 
 function updateWhoCharts(data, whoTotals){
   const sortedWhos=whoTotals.map(x=>x.w);
-  const cats=unique(data.map(r=>r.cat));
+  const divTotalsW={},tmTotalsW={};
+  data.forEach(r=>{divTotalsW[r.div]=(divTotalsW[r.div]||0)+r.amt;tmTotalsW[r.tm]=(tmTotalsW[r.tm]||0)+r.amt;});
+  const cats=unique(data.map(r=>r.cat)).map(v=>{const cd=data.filter(r=>r.cat===v);const first=cd[0]||{};return{v,s:sum(cd,"amt"),div:first.div||"",tm:first.tm||""};}).sort((a,b)=>{const dd=(divTotalsW[b.div]||0)-(divTotalsW[a.div]||0);if(dd!==0)return dd;const td=(tmTotalsW[b.tm]||0)-(tmTotalsW[a.tm]||0);if(td!==0)return td;return b.s-a.s;}).map(x=>x.v);
 
   // 月リストをデータから生成
   const mSet=new Map();
@@ -378,10 +418,12 @@ function updateWhoCharts(data, whoTotals){
 
 function updateWhoTable(data, whoTotals){
   const el=document.getElementById("whoTableSection");if(!el)return;
-  const cats=unique(data.map(r=>r.cat));
+  const divTotals={},tmTotals={};
+  data.forEach(r=>{divTotals[r.div]=(divTotals[r.div]||0)+r.amt;tmTotals[r.tm]=(tmTotals[r.tm]||0)+r.amt;});
+  const cats=unique(data.map(r=>r.cat)).map(v=>{const cd=data.filter(r=>r.cat===v);const first=cd[0]||{};return{v,s:sum(cd,"amt"),div:first.div||"",tm:first.tm||""};}).sort((a,b)=>{const dd=(divTotals[b.div]||0)-(divTotals[a.div]||0);if(dd!==0)return dd;const td=(tmTotals[b.tm]||0)-(tmTotals[a.tm]||0);if(td!==0)return td;return b.s-a.s;}).map(x=>x.v);
   const sortedWhos=whoTotals.map(x=>x.w);
 
-  let html=`<h2>担当別・大分類内訳（万円）</h2><table class="data-table"><thead><tr><th>担当</th>`;
+  let html=`<table class="data-table" style="font-size:10px;"><thead><tr><th>担当</th>`;
   cats.forEach(c=>{html+=`<th>${c}</th>`;});
   html+=`<th>合計</th></tr></thead><tbody>`;
 
@@ -400,6 +442,449 @@ function updateWhoTable(data, whoTotals){
   cats.forEach(c=>{const v=Math.round(sum(data.filter(r=>r.cat===c),"amt")*100)/100;html+=`<td>${v>0?v.toFixed(1):'-'}</td>`;});
   html+=`<td>${sum(data,"amt").toFixed(1)}</td></tr>`;
   html+=`</tbody></table>`;
+  el.innerHTML=html;
+}
+
+function updateWhoUnitPriceTable(data, whoTotals){
+  const el=document.getElementById("whoUnitPriceTableSection");if(!el)return;
+  const mSet=new Map();
+  data.forEach(r=>{if(r.month&&r.monthSort)mSet.set(r.month,r.monthSort);});
+  const months=[...mSet.entries()].sort((a,b)=>a[1]-b[1]).map(e=>e[0]);
+  const sortedWhos=whoTotals.map(x=>x.w);
+
+  let html=`<table class="data-table" style="font-size:10px;"><thead><tr><th>担当者</th>`;
+  months.forEach(m=>{html+=`<th>${m}</th>`;});
+  html+=`<th>合計</th></tr></thead><tbody>`;
+
+  sortedWhos.forEach(w=>{
+    html+=`<tr><td style="font-weight:600;">${w}</td>`;
+    months.forEach(m=>{
+      const jRows=data.filter(r=>r.who===w&&r.month===m&&r.st==="J");
+      const amt=sum(jRows,"amt");
+      const cos=new Set(jRows.map(r=>r.client)).size;
+      const v=cos>0?Math.round(amt/cos*100)/100:0;
+      html+=`<td class="${v===0?'zero':''}">${v>0?v.toFixed(1):'-'}</td>`;
+    });
+    // 合計列：全期間のJ売上合計 ÷ 全期間のJユニーク会社数
+    const allJ=data.filter(r=>r.who===w&&r.st==="J");
+    const allAmt=sum(allJ,"amt");
+    const allCos=new Set(allJ.map(r=>r.client)).size;
+    const total=allCos>0?Math.round(allAmt/allCos*100)/100:0;
+    html+=`<td>${total>0?total.toFixed(1):'-'}</td></tr>`;
+  });
+
+  // 合計行：全担当のJ売上合計 ÷ 全担当のJユニーク会社数（月ごと）
+  html+=`<tr class="total-row"><td>平均</td>`;
+  months.forEach(m=>{
+    const jRows=data.filter(r=>r.month===m&&r.st==="J");
+    const amt=sum(jRows,"amt");
+    const cos=new Set(jRows.map(r=>r.client)).size;
+    const v=cos>0?Math.round(amt/cos*100)/100:0;
+    html+=`<td>${v>0?v.toFixed(1):'-'}</td>`;
+  });
+  const allJ=data.filter(r=>r.st==="J");
+  const allAmt=sum(allJ,"amt");
+  const allCos=new Set(allJ.map(r=>r.client)).size;
+  const grandAvg=allCos>0?Math.round(allAmt/allCos*100)/100:0;
+  html+=`<td>${grandAvg>0?grandAvg.toFixed(1):'-'}</td></tr>`;
+  html+=`</tbody></table>`;
+  el.innerHTML=html;
+}
+
+function updateWhoTypeTable(data, whoTotals){
+  const el=document.getElementById("whoTypeTableSection");if(!el)return;
+  const mSet=new Map();
+  data.forEach(r=>{if(r.month&&r.monthSort)mSet.set(r.month,r.monthSort);});
+  const months=[...mSet.entries()].sort((a,b)=>a[1]-b[1]).map(e=>e[0]);
+  const sortedWhos=whoTotals.map(x=>x.w);
+  const types=["固定費","変動費"];
+
+  let html=`<table class="data-table" style="font-size:10px;"><thead><tr><th>担当者</th><th>費用区分</th>`;
+  months.forEach(m=>{html+=`<th>${m}</th>`;});
+  html+=`<th>合計</th></tr></thead><tbody>`;
+
+  const typeCellStyle=`style="color:#94a3b8;text-align:left;padding-left:8px;"`;
+  sortedWhos.forEach((w,wi)=>{
+    const wData=data.filter(r=>r.who===w);
+    types.forEach((t,ti)=>{
+      const tData=wData.filter(r=>r.type===t);
+      let rowTotal=0;
+      html+=`<tr>`;
+      if(ti===0){
+        html+=`<td rowspan="${types.length}" style="font-weight:600;vertical-align:middle;">${w}</td>`;
+      }
+      html+=`<td ${typeCellStyle}>${t}</td>`;
+      months.forEach(m=>{
+        const v=Math.round(sum(tData.filter(r=>r.month===m),"amt")*100)/100;
+        rowTotal+=v;
+        html+=`<td class="${v===0?'zero':''}">${v>0?v.toFixed(1):'-'}</td>`;
+      });
+      html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
+    });
+    // 小計行
+    let subTotal=0;
+    html+=`<tr style="background:rgba(99,102,241,.06);"><td colspan="2" style="font-weight:600;text-align:right;padding-right:8px;">小計</td>`;
+    months.forEach(m=>{
+      const v=Math.round(sum(wData.filter(r=>r.month===m),"amt")*100)/100;
+      subTotal+=v;
+      html+=`<td>${v>0?v.toFixed(1):'-'}</td>`;
+    });
+    html+=`<td style="font-weight:600;">${subTotal.toFixed(1)}</td></tr>`;
+  });
+
+  // 合計行（固定費・変動費内訳＋総合計）
+  types.forEach(t=>{
+    let rowTotal=0;
+    const tData=data.filter(r=>r.type===t);
+    html+=`<tr class="total-row"><td style="font-weight:600;">合計</td><td ${typeCellStyle}>${t}</td>`;
+    months.forEach(m=>{
+      const v=Math.round(sum(tData.filter(r=>r.month===m),"amt")*100)/100;
+      rowTotal+=v;
+      html+=`<td>${v>0?v.toFixed(1):'-'}</td>`;
+    });
+    html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
+  });
+  let grandTotal=0;
+  html+=`<tr class="total-row" style="font-weight:700;"><td colspan="2">総合計</td>`;
+  months.forEach(m=>{const v=Math.round(sum(data.filter(r=>r.month===m),"amt")*100)/100;grandTotal+=v;html+=`<td>${v>0?v.toFixed(1):'-'}</td>`;});
+  html+=`<td>${grandTotal.toFixed(1)}</td></tr>`;
+  html+=`</tbody></table>`;
+  el.innerHTML=html;
+}
+
+// ===== CL情報ページ =====
+
+function renderClPage(){
+  const allCompanies=Object.values(companyMap);
+  const tantos=unique(allCompanies.map(c=>c["担当者"]||""));
+  const sts=unique(allCompanies.map(c=>c["取引状況"]||""));
+  const segs=unique(allCompanies.map(c=>c["棟数セグメント"]||""));
+  const prefs=geoSort(unique(allCompanies.map(c=>c["都道府県／地域"]||"")).filter(Boolean));
+  const areas=geoSort(unique(allCompanies.flatMap(c=>(c["施工エリア"]||"").split(/[；;]/).map(s=>s.trim()).filter(Boolean))));
+
+  const companies=allCompanies.filter(c=>{
+    if(F.clTanto!=="all"&&(c["担当者"]||"")!==F.clTanto)return false;
+    if(F.clSt!=="all"&&(c["取引状況"]||"")!==F.clSt)return false;
+    if(F.clSeg!=="all"&&(c["棟数セグメント"]||"")!==F.clSeg)return false;
+    if(F.clPref.length>0&&!F.clPref.includes(c["都道府県／地域"]||""))return false;
+    if(F.clArea.length>0&&!F.clArea.some(a=>(c["施工エリア"]||"").split(/[；;]/).map(s=>s.trim()).includes(a)))return false;
+    return true;
+  });
+  const clMFrom=F.clMonthFrom==="all"?0:allMonths.find(m=>m.label===F.clMonthFrom)?.sort||0;
+  const clMTo=F.clMonthTo==="all"?99999:allMonths.find(m=>m.label===F.clMonthTo)?.sort||99999;
+  const salesData=rawData.filter(r=>{
+    if(F.clTanto!=="all"&&r.who!==F.clTanto)return false;
+    if(F.clSt!=="all"&&r.clientSt!==F.clSt)return false;
+    if(F.clSeg!=="all"&&r.clientSeg!==F.clSeg)return false;
+    if(F.clPref.length>0&&!F.clPref.includes(r.clientPref))return false;
+    if(F.clArea.length>0&&!F.clArea.some(a=>r.clientArea.split(/[；;]/).map(s=>s.trim()).includes(a)))return false;
+    if(F.clKi!=="all"&&r.ki!==F.clKi)return false;
+    if(r.monthSort<clMFrom||r.monthSort>clMTo)return false;
+    return true;
+  });
+  const tantoMFrom=F.tantoMonthFrom==="all"?0:allMonths.find(m=>m.label===F.tantoMonthFrom)?.sort||0;
+  const tantoMTo=F.tantoMonthTo==="all"?99999:allMonths.find(m=>m.label===F.tantoMonthTo)?.sort||99999;
+  const tantoSalesData=rawData.filter(r=>{
+    if(F.tantoKi!=="all"&&r.ki!==F.tantoKi)return false;
+    if(r.monthSort<tantoMFrom||r.monthSort>tantoMTo)return false;
+    return true;
+  });
+  const totalSales=sum(salesData,"amt");
+  const updStr=meta.updated?new Date(meta.updated).toLocaleString("ja-JP"):"-";
+
+  function clChips(key,vals){
+    let h=`<button class="chip chip-all ${F[key]==='all'?'active':''}" onclick="setFilter('${key}','all')">すべて</button>`;
+    vals.forEach(v=>{h+=`<button class="chip ${F[key]===v?'active':''}" onclick="setFilter('${key}','${esc(v)}')">${v}</button>`;});
+    return h;
+  }
+
+  // セグメント×取引状況 クロス表（並び順固定）
+  const stOrder=["取引中","追客中","一時中止中","オチ"];
+  const tableSegs=segSortCl(segs);
+  const tableSts=stOrder.filter(s=>sts.includes(s)).concat(sts.filter(s=>!stOrder.includes(s)));
+  let segStTableHtml=`<div class="table-section" style="margin-top:0;margin-bottom:18px;"><h2>棟数セグメント × 取引状況（会社数）</h2><table class="data-table"><thead><tr><th>棟数セグメント</th>`;
+  tableSts.forEach(s=>{segStTableHtml+=`<th>${s}</th>`;});
+  segStTableHtml+=`<th>合計</th></tr></thead><tbody>`;
+  tableSegs.forEach(seg=>{
+    const segCos=companies.filter(c=>(c["棟数セグメント"]||"")===seg);
+    segStTableHtml+=`<tr><td>${seg}</td>`;
+    tableSts.forEach(s=>{const n=segCos.filter(c=>(c["取引状況"]||"")===s).length;segStTableHtml+=`<td class="${n===0?'zero':''}">${n>0?n:'-'}</td>`;});
+    segStTableHtml+=`<td>${segCos.length}</td></tr>`;
+  });
+  segStTableHtml+=`<tr class="total-row"><td>合計</td>`;
+  tableSts.forEach(s=>{segStTableHtml+=`<td>${companies.filter(c=>(c["取引状況"]||"")===s).length}</td>`;});
+  segStTableHtml+=`<td>${companies.length}</td></tr></tbody></table></div>`;
+
+  // 施工エリア×棟数セグメント クロス表
+  const REGION_MAP=[
+    {name:"北海道",prefs:["北海道"],color:"rgba(99,102,241,.18)"},
+    {name:"東北",prefs:["青森県","岩手県","宮城県","秋田県","山形県","福島県"],color:"rgba(16,185,129,.18)"},
+    {name:"関東",prefs:["茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県"],color:"rgba(245,158,11,.18)"},
+    {name:"北陸",prefs:["新潟県","富山県","石川県","福井県"],color:"rgba(239,68,68,.18)"},
+    {name:"甲信越",prefs:["山梨県","長野県"],color:"rgba(20,184,166,.18)"},
+    {name:"東海",prefs:["岐阜県","静岡県","愛知県","三重県"],color:"rgba(234,179,8,.18)"},
+    {name:"近畿",prefs:["滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県"],color:"rgba(6,182,212,.18)"},
+    {name:"中国",prefs:["鳥取県","島根県","岡山県","広島県","山口県"],color:"rgba(168,85,247,.18)"},
+    {name:"四国",prefs:["徳島県","香川県","愛媛県","高知県"],color:"rgba(249,115,22,.18)"},
+    {name:"九州・沖縄",prefs:["福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"],color:"rgba(236,72,153,.18)"},
+  ];
+  function getRegionColor(areaName){const r=REGION_MAP.find(r=>r.prefs.some(p=>areaName.includes(p)));return r?r.color:"";}
+  const tableAreas=F.clArea.length>0?geoSort(F.clArea):geoSort(areas);
+  const areaRows=tableAreas.map(area=>({area,cos:companies.filter(c=>(c["施工エリア"]||"").split(/[；;]/).map(s=>s.trim()).includes(area))})).filter(x=>x.cos.length>0);
+  const areaTotal=areaRows.reduce((s,x)=>s+x.cos.length,0);
+  let areaSegTableHtml=`<div class="table-section" style="margin-top:18px;"><h2>施工エリア × 棟数セグメント（会社数）</h2><table class="data-table"><thead><tr><th>施工エリア</th>`;
+  tableSegs.forEach(s=>{areaSegTableHtml+=`<th>${s}</th>`;});
+  areaSegTableHtml+=`<th>合計</th><th>割合</th></tr></thead><tbody>`;
+  areaRows.forEach(({area,cos})=>{
+    const bg=getRegionColor(area);
+    areaSegTableHtml+=`<tr style="${bg?`background:${bg}`:''}"><td>${area}</td>`;
+    tableSegs.forEach(s=>{const n=cos.filter(c=>(c["棟数セグメント"]||"")===s).length;areaSegTableHtml+=`<td class="${n===0?'zero':''}">${n>0?n:'-'}</td>`;});
+    areaSegTableHtml+=`<td>${cos.length}</td><td>${areaTotal>0?Math.round(cos.length/areaTotal*100):0}%</td></tr>`;
+  });
+  areaSegTableHtml+=`</tbody></table></div>`;
+
+  // 施工エリア × Meta広告Jヨミ社数テーブル
+  const metaJData=salesData.filter(r=>r.prod.includes("【Meta広告】")&&r.st==="J");
+  const metaJClients=unique(metaJData.map(r=>r.client));
+  const metaAreaRows=tableAreas.map(area=>{
+    const areaCos=companies.filter(c=>(c["施工エリア"]||"").split(/[；;]/).map(s=>s.trim()).includes(area));
+    const n=areaCos.filter(c=>metaJClients.includes(c["会社名"]||"")).length;
+    return{area,n};
+  }).filter(x=>x.n>0);
+  const metaTotal=metaAreaRows.reduce((s,x)=>s+x.n,0);
+  let metaJTableHtml=`<div class="table-section" style="margin-top:18px;"><h2>施工エリア × Meta広告 Jヨミ社数</h2><table class="data-table"><thead><tr><th>施工エリア</th><th>社数</th><th>割合</th></tr></thead><tbody>`;
+  metaAreaRows.forEach(({area,n})=>{
+    const bg=getRegionColor(area);
+    metaJTableHtml+=`<tr style="${bg?`background:${bg}`:''}"><td>${area}</td><td>${n}</td><td>${metaTotal>0?Math.round(n/metaTotal*100):0}%</td></tr>`;
+  });
+  metaJTableHtml+=`<tr class="total-row"><td>合計</td><td>${metaTotal}</td><td>100%</td></tr></tbody></table></div>`;
+
+  const overviewContent=`
+    <div class="filters">
+      <div class="filter-header"><span>フィルター</span><button class="btn" style="padding:3px 10px;font-size:10px;" onclick="F.showFilters=!F.showFilters;render();">${F.showFilters?"閉じる ▲":"開く ▼"}</button></div>
+      <div style="display:${F.showFilters?'block':'none'}">
+        <div class="filter-row"><span class="filter-label">期:</span>${clChips('clKi',unique(rawData.map(r=>r.ki)))}</div>
+        <div class="filter-row"><span class="filter-label">計上月:</span><div class="month-range">${monthSelectHtml('clMonthFrom','開始月')}<span>〜</span>${monthSelectHtml('clMonthTo','終了月')}</div></div>
+        <div class="filter-row"><span class="filter-label">担当者:</span>${clChips('clTanto',tantos)}</div>
+
+
+        <div class="filter-row"><span class="filter-label">都道府県:</span>${multiChipsHtml('clPref',prefs)}</div>
+        <div class="filter-row"><span class="filter-label">施工エリア:</span>${multiChipsHtml('clArea',areas)}</div>
+        <button class="btn" style="margin-top:6px;font-size:10px;padding:4px 12px;" onclick="resetClFilters()">フィルターをリセット</button>
+      </div>
+    </div>
+    ${segStTableHtml}
+    <div class="two-charts">
+      <div class="chart-wrap chart-wrap-sm"><div class="chart-title">棟数セグメント構成 ー 取引中（会社数）</div><canvas id="clChart2"></canvas><div id="clChart2Table" style="margin-top:12px;overflow-x:auto;"></div></div>
+      <div class="chart-wrap chart-wrap-sm"><div class="chart-title">セグメント別売上（万円）</div><canvas id="clChart3"></canvas><div id="clChart3Table" style="margin-top:12px;overflow-x:auto;"></div></div>
+    </div>
+    <div class="two-charts">
+      <div class="chart-wrap chart-wrap-sm"><div class="chart-title">セグメント別・カテゴリ内訳（万円）</div><canvas id="clChart4"></canvas><div id="clChart4Table" style="margin-top:12px;overflow-x:auto;"></div></div>
+    </div>
+    ${areaSegTableHtml}
+    ${metaJTableHtml}`;
+
+  const tantoContent=`
+    <div class="filters">
+      <div class="filter-header"><span>フィルター</span><button class="btn" style="padding:3px 10px;font-size:10px;" onclick="F.showFilters=!F.showFilters;render();">${F.showFilters?"閉じる ▲":"開く ▼"}</button></div>
+      <div style="display:${F.showFilters?'block':'none'}">
+        <div class="filter-row"><span class="filter-label">期:</span>${clChips('tantoKi',unique(rawData.map(r=>r.ki)))}</div>
+        <div class="filter-row"><span class="filter-label">計上月:</span><div class="month-range">${monthSelectHtml('tantoMonthFrom','開始月')}<span>〜</span>${monthSelectHtml('tantoMonthTo','終了月')}</div></div>
+        <button class="btn" style="margin-top:6px;font-size:10px;padding:4px 12px;" onclick="resetTantoFilters()">フィルターをリセット</button>
+      </div>
+    </div>
+    <div class="chart-wrap" style="margin-bottom:18px;"><div class="chart-title">担当者別・Jヨミ社数 月推移</div><div id="clChartJMonthTable" style="overflow-x:auto;"></div></div>
+    <div class="chart-wrap" style="margin-bottom:18px;"><div class="chart-title">担当者別・取引状況（会社数）</div><canvas id="clChart1" style="min-height:300px;max-height:380px;"></canvas><div id="clChart1Table" style="margin-top:12px;overflow-x:auto;"></div></div>
+    <div class="chart-wrap"><div class="chart-title">担当者別・棟数セグメント（会社数）</div><canvas id="clChart5" style="min-height:300px;max-height:380px;"></canvas><div id="clChart5Table" style="margin-top:12px;overflow-x:auto;"></div></div>`;
+
+  document.getElementById("app").innerHTML=`
+    ${pageTabsHtml()}
+    <div class="header">
+      <div><h1>CL情報</h1><div class="sub">リアルタイム連携 ｜ ${companies.length}社 / ${allCompanies.length}社中 ｜ 最終更新: ${updStr}</div></div>
+      <button class="btn" onclick="fetchData()">⟳ 更新</button>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">会社数（取引中）</div><div class="kpi-val">${companies.filter(c=>(c["取引状況"]||"")==="取引中").length}</div><div class="kpi-sub">社</div></div>
+      <div class="kpi"><div class="kpi-label">総売上（Jヨミ）</div><div class="kpi-val">${(v=>v>=10000?(v/10000).toFixed(2)+"億円":v.toFixed(0)+"万円")(sum((F.clTab==='tanto'?tantoSalesData:salesData).filter(r=>r.st==="J"),"amt"))}</div><div class="kpi-sub">${(F.clTab==='tanto'?tantoSalesData:salesData).filter(r=>r.st==="J").length}件</div></div>
+      <div class="kpi"><div class="kpi-label">担当者数</div><div class="kpi-val">${unique(companies.map(c=>c["担当者"]||"")).length}</div><div class="kpi-sub">名</div></div>
+    </div>
+    <div class="tabs" style="margin-bottom:0;">
+      <button class="tab ${F.clTab==='overview'?'active':''}" onclick="F.clTab='overview';render();">全体</button>
+      <button class="tab ${F.clTab==='tanto'?'active':''}" onclick="F.clTab='tanto';render();">担当者別</button>
+    </div>
+    ${F.clTab==='overview'?overviewContent:tantoContent}
+    <div class="footer">スプレッドシートからリアルタイム取得 ｜ 「更新」ボタンで最新データを反映</div>
+  `;
+  updateClCharts(companies,salesData,tantoSalesData);
+  updateClTable(companies,salesData);
+}
+
+function resetClFilters(){F.clTanto="all";F.clSt="all";F.clSeg="all";F.clPref=[];F.clArea=[];F.clKi="all";F.clMonthFrom="all";F.clMonthTo="all";render();}
+function resetTantoFilters(){F.tantoKi="all";F.tantoMonthFrom="all";F.tantoMonthTo="all";render();}
+
+function updateClCharts(companies,salesData,tantoSalesData){
+  const tantosSorted=unique(companies.map(c=>c["担当者"]||"")).filter(Boolean).sort((a,b)=>companies.filter(c=>c["担当者"]===b).length-companies.filter(c=>c["担当者"]===a).length);
+  const sts=unique(companies.map(c=>c["取引状況"]||"")).filter(Boolean);
+  const segs=unique(companies.map(c=>c["棟数セグメント"]||"")).filter(Boolean);
+  if(F.clTab==='tanto'){updateClTantoCharts(companies,tantoSalesData,tantosSorted,sts);return;}
+  // overview charts below
+
+  // Chart2: 棟数セグメント構成（円グラフ）
+  const c2=document.getElementById("clChart2");
+  if(charts.clChart2)charts.clChart2.destroy();
+  if(c2){
+    const activeCos=companies.filter(c=>(c["取引状況"]||"")==="取引中");
+    const segCounts=segSortCl(segs.filter(seg=>activeCos.some(c=>c["棟数セグメント"]===seg))).map(seg=>({seg,n:activeCos.filter(c=>c["棟数セグメント"]===seg).length}));
+    const total2=activeCos.length;
+    charts.clChart2=new Chart(c2,{type:"doughnut",data:{labels:segCounts.map(x=>x.seg),datasets:[{data:segCounts.map(x=>x.n),backgroundColor:COLORS.slice(0,segCounts.length)}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:9},boxWidth:10}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw}社 (${total2>0?Math.round(ctx.raw/total2*100):0}%)`}}}}});
+    const t2=document.getElementById("clChart2Table");
+    if(t2){
+      let h=`<table class="data-table" style="font-size:10px;"><thead><tr><th style="text-align:left;">セグメント</th><th>会社数</th><th>割合</th></tr></thead><tbody>`;
+      segCounts.forEach(x=>{h+=`<tr><td>${x.seg}</td><td>${x.n}</td><td>${total2>0?Math.round(x.n/total2*100):0}%</td></tr>`;});
+      h+=`<tr class="total-row"><td>合計（取引中）</td><td>${total2}</td><td>100%</td></tr></tbody></table>`;
+      t2.innerHTML=h;
+    }
+  }
+
+  // Chart3: セグメント別売上
+  const segTotals=segSortCl(unique(salesData.map(r=>r.clientSeg)).filter(Boolean)).map(s=>({s,v:Math.round(sum(salesData.filter(r=>r.clientSeg===s),"amt")*100)/100}));
+  const c3=document.getElementById("clChart3");
+  if(charts.clChart3)charts.clChart3.destroy();
+  if(c3){
+    charts.clChart3=new Chart(c3,{type:"bar",data:{labels:segTotals.map(x=>x.s),datasets:[{label:"売上",backgroundColor:COLORS[0],data:segTotals.map(x=>x.v)}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:"#94a3b8",font:{size:9}}},y:{ticks:{color:"#94a3b8",font:{size:9},callback:v=>v+"万"}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw.toFixed(1)}万円`}}}}});
+    const t3=document.getElementById("clChart3Table");
+    if(t3){
+      const totalSeg=segTotals.reduce((s,x)=>s+x.v,0);
+      let h=`<table class="data-table" style="font-size:10px;"><thead><tr><th style="text-align:left;">セグメント</th><th>売上（万円）</th><th>割合</th></tr></thead><tbody>`;
+      segTotals.forEach(x=>{h+=`<tr><td>${x.s}</td><td>${x.v.toFixed(1)}</td><td>${totalSeg>0?Math.round(x.v/totalSeg*100):0}%</td></tr>`;});
+      h+=`<tr class="total-row"><td>合計</td><td>${totalSeg.toFixed(1)}</td><td>100%</td></tr></tbody></table>`;
+      t3.innerHTML=h;
+    }
+  }
+
+  // Chart4: セグメント別・カテゴリ内訳
+  const segLabels=segTotals.map(x=>x.s);
+  const cats=unique(salesData.map(r=>r.cat)).filter(Boolean);
+  const c4=document.getElementById("clChart4");
+  if(charts.clChart4)charts.clChart4.destroy();
+  if(c4){
+    charts.clChart4=new Chart(c4,{type:"bar",data:{labels:segLabels,datasets:cats.map((cat,i)=>({label:cat,backgroundColor:COLORS[i%COLORS.length],data:segLabels.map(s=>Math.round(sum(salesData.filter(r=>r.clientSeg===s&&r.cat===cat),"amt")*100)/100)}))},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{color:"#94a3b8",font:{size:9}}},y:{stacked:true,ticks:{color:"#94a3b8",font:{size:9},callback:v=>v+"万"}}},plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{return`合計: ${items.reduce((s,i)=>s+i.raw,0).toFixed(1)}万円`;}}}}}});
+    const t4=document.getElementById("clChart4Table");
+    if(t4){
+      const clDivTotals={},clTmTotals={};
+      salesData.forEach(r=>{clDivTotals[r.div]=(clDivTotals[r.div]||0)+r.amt;clTmTotals[r.tm]=(clTmTotals[r.tm]||0)+r.amt;});
+      const sortedCatsWithDiv=cats.map(cat=>{const cd=salesData.filter(r=>r.cat===cat);const first=cd[0]||{};return{cat,s:sum(cd,"amt"),div:first.div||"",tm:first.tm||""};}).sort((a,b)=>{const dd=(clDivTotals[b.div]||0)-(clDivTotals[a.div]||0);if(dd!==0)return dd;const td=(clTmTotals[b.tm]||0)-(clTmTotals[a.tm]||0);if(td!==0)return td;return b.s-a.s;});
+      const divColors=['rgba(99,102,241,.15)','rgba(16,185,129,.15)','rgba(245,158,11,.15)','rgba(239,68,68,.15)','rgba(6,182,212,.15)','rgba(168,85,247,.15)','rgba(249,115,22,.15)'];
+      const clDivColorMap={};let clDivColorIdx=0;
+      sortedCatsWithDiv.forEach(({div})=>{if(!(div in clDivColorMap))clDivColorMap[div]=divColors[clDivColorIdx++%divColors.length];});
+      let h=`<table class="data-table" style="font-size:10px;min-width:400px;"><thead><tr><th style="text-align:left;">カテゴリ</th>`;
+      segLabels.forEach(s=>{h+=`<th>${s}</th>`;});
+      h+=`<th>合計</th></tr></thead><tbody>`;
+      sortedCatsWithDiv.forEach(({cat,div})=>{
+        const rowVals=segLabels.map(s=>Math.round(sum(salesData.filter(r=>r.clientSeg===s&&r.cat===cat),"amt")*100)/100);
+        const rowTotal=rowVals.reduce((a,b)=>a+b,0);
+        if(rowTotal===0)return;
+        h+=`<tr style="background:${clDivColorMap[div]||''}"><td>${cat}</td>`;
+        rowVals.forEach(v=>{h+=`<td class="${v===0?'zero':''}">${v>0?v.toFixed(1):'-'}</td>`;});
+        h+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
+      });
+      const colTotals=segLabels.map(s=>Math.round(sum(salesData.filter(r=>r.clientSeg===s),"amt")*100)/100);
+      const grandTotal=colTotals.reduce((a,b)=>a+b,0);
+      h+=`<tr class="total-row"><td>合計</td>`;
+      colTotals.forEach(v=>{h+=`<td>${v.toFixed(1)}</td>`;});
+      h+=`<td>${grandTotal.toFixed(1)}</td></tr></tbody></table>`;
+      t4.innerHTML=h;
+    }
+  }
+}
+
+function updateClTantoCharts(companies,salesData,tantosSorted,sts){
+  const ST_ORDER=["取引中","追客中","一時中止中","オチ"];
+  sts=[...sts].sort((a,b)=>{const ia=ST_ORDER.indexOf(a),ib=ST_ORDER.indexOf(b);if(ia===-1&&ib===-1)return a.localeCompare(b,"ja");if(ia===-1)return 1;if(ib===-1)return -1;return ia-ib;});
+  // Jヨミ月推移テーブル
+  const tJM=document.getElementById("clChartJMonthTable");
+  if(tJM){
+    const jMonths=unique(salesData.filter(r=>r.st==="J").map(r=>r.month)).sort((a,b)=>{const ma=allMonths.find(m=>m.label===a),mb=allMonths.find(m=>m.label===b);return(ma?.sort||0)-(mb?.sort||0);});
+    let h=`<table class="data-table" style="font-size:10px;min-width:400px;"><thead><tr><th style="text-align:left;">担当者</th>`;
+    jMonths.forEach(m=>{h+=`<th>${m}</th>`;});
+    h+=`</tr></thead><tbody>`;
+    tantosSorted.forEach(t=>{
+      const rowVals=jMonths.map(m=>unique(salesData.filter(r=>r.who===t&&r.st==="J"&&r.month===m).map(r=>r.client)).length);
+      if(rowVals.reduce((a,b)=>a+b,0)===0)return;
+      h+=`<tr><td>${t}</td>`;
+      rowVals.forEach(v=>{h+=`<td class="${v===0?'zero':''}">${v>0?v:'-'}</td>`;});
+      h+=`</tr>`;
+    });
+    h+=`</tbody></table>`;
+    tJM.innerHTML=h;
+  }
+  // Chart5: 担当者別・棟数セグメント（会社数）
+  const SEG_ORDER=["超ヘビー","ヘビー","M1","M2","ライト","FC","HM","その他"];
+  function segSort(vals){return[...vals].sort((a,b)=>{const ia=SEG_ORDER.findIndex(k=>a.includes(k)||k.includes(a));const ib=SEG_ORDER.findIndex(k=>b.includes(k)||k.includes(b));if(ia===-1&&ib===-1)return a.localeCompare(b,"ja");if(ia===-1)return 1;if(ib===-1)return -1;return ia-ib;});}
+  const segs5=unique(companies.map(c=>c["棟数セグメント"]||"")).filter(Boolean);
+  const orderedSegs5=segSort(segs5);
+  const c5=document.getElementById("clChart5");
+  if(charts.clChart5)charts.clChart5.destroy();
+  if(c5){
+    charts.clChart5=new Chart(c5,{type:"bar",data:{labels:tantosSorted,datasets:orderedSegs5.map((s,i)=>({label:s,backgroundColor:COLORS[i%COLORS.length],data:tantosSorted.map(t=>companies.filter(c=>c["担当者"]===t&&c["棟数セグメント"]===s).length)}))},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{color:"#94a3b8",font:{size:9}}},y:{stacked:true,ticks:{color:"#94a3b8",font:{size:9}}}},plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{return`合計: ${items.reduce((s,i)=>s+i.raw,0)}社`;}}}}}});
+    const t5=document.getElementById("clChart5Table");
+    if(t5){
+      let h=`<table class="data-table" style="font-size:10px;"><thead><tr><th style="text-align:left;">担当者</th>`;
+      orderedSegs5.forEach(s=>{h+=`<th>${s}</th>`;});
+      h+=`<th>合計</th></tr></thead><tbody>`;
+      tantosSorted.forEach(t=>{
+        const tc=companies.filter(c=>c["担当者"]===t);
+        h+=`<tr><td>${t}</td>`;
+        orderedSegs5.forEach(s=>{const n=tc.filter(c=>c["棟数セグメント"]===s).length;h+=`<td class="${n===0?'zero':''}">${n>0?n:'-'}</td>`;});
+        h+=`<td>${tc.length}</td></tr>`;
+      });
+      h+=`<tr class="total-row"><td>合計</td>`;
+      orderedSegs5.forEach(s=>{h+=`<td>${companies.filter(c=>c["棟数セグメント"]===s).length}</td>`;});
+      h+=`<td>${companies.length}</td></tr></tbody></table>`;
+      t5.innerHTML=h;
+    }
+  }
+  // Chart1: 担当者別・取引状況（会社数）— companies respects CL filters
+  const c1=document.getElementById("clChart1");
+  if(charts.clChart1)charts.clChart1.destroy();
+  if(c1){
+    charts.clChart1=new Chart(c1,{type:"bar",data:{labels:tantosSorted,datasets:sts.map((s,i)=>({label:s,backgroundColor:COLORS[i%COLORS.length],data:tantosSorted.map(t=>companies.filter(c=>c["担当者"]===t&&c["取引状況"]===s).length)}))},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{color:"#94a3b8",font:{size:9}}},y:{stacked:true,ticks:{color:"#94a3b8",font:{size:9}}}},plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{return`合計: ${items.reduce((s,i)=>s+i.raw,0)}社`;}}}}}});
+    const t1=document.getElementById("clChart1Table");
+    if(t1){
+      let h=`<table class="data-table" style="font-size:10px;"><thead><tr><th style="text-align:left;">担当者</th>`;
+      sts.forEach(s=>{h+=`<th>${s}</th>`;});
+      h+=`<th>合計</th></tr></thead><tbody>`;
+      tantosSorted.forEach(t=>{
+        const tc=companies.filter(c=>c["担当者"]===t);
+        h+=`<tr><td>${t}</td>`;
+        sts.forEach(s=>{const n=tc.filter(c=>c["取引状況"]===s).length;h+=`<td class="${n===0?'zero':''}">${n>0?n:'-'}</td>`;});
+        h+=`<td>${tc.length}</td></tr>`;
+      });
+      h+=`<tr class="total-row"><td>合計</td>`;
+      sts.forEach(s=>{h+=`<td>${companies.filter(c=>c["取引状況"]===s).length}</td>`;});
+      h+=`<td>${companies.length}</td></tr></tbody></table>`;
+      t1.innerHTML=h;
+    }
+  }
+}
+
+function updateClTable(companies,salesData){
+  const el=document.getElementById("clTableSection");if(!el)return;
+  const tantosSorted=unique(companies.map(c=>c["担当者"]||"")).filter(Boolean).sort((a,b)=>companies.filter(c=>c["担当者"]===b).length-companies.filter(c=>c["担当者"]===a).length);
+  const sts=unique(companies.map(c=>c["取引状況"]||"")).filter(Boolean);
+
+  let html=`<h2>担当者別・取引状況（会社数）</h2><table class="data-table"><thead><tr><th>担当者</th>`;
+  sts.forEach(s=>{html+=`<th>${s}</th>`;});
+  html+=`<th>合計</th></tr></thead><tbody>`;
+  tantosSorted.forEach(t=>{
+    const tc=companies.filter(c=>c["担当者"]===t);
+    html+=`<tr><td>${t}</td>`;
+    sts.forEach(s=>{const n=tc.filter(c=>c["取引状況"]===s).length;html+=`<td class="${n===0?'zero':''}">${n>0?n:'-'}</td>`;});
+    html+=`<td>${tc.length}</td></tr>`;
+  });
+  html+=`<tr class="total-row"><td>合計</td>`;
+  sts.forEach(s=>{html+=`<td>${companies.filter(c=>c["取引状況"]===s).length}</td>`;});
+  html+=`<td>${companies.length}</td></tr></tbody></table>`;
   el.innerHTML=html;
 }
 
@@ -426,6 +911,8 @@ function getMonths(){
 function updateChart(){
   const canvas=document.getElementById("mainChart");if(!canvas)return;
   if(charts.main)charts.main.destroy();
+  canvas.style.minHeight=F.tab==="pie"?"500px":"";
+  canvas.style.maxHeight=F.tab==="pie"?"500px":"";
   const months=getMonths(),byMonth=groupBy(filteredData,"month"),sf=F.stack;
   if(F.tab==="bar"){
     const sv=unique(filteredData.map(r=>r[sf]));
@@ -443,19 +930,14 @@ function updateChart(){
       }
       return b.s-a.s;
     });
-    const top=vs.slice(0,14).map(x=>x.v);
+    const top=vs.map(x=>x.v);
     const ds=top.map((v,i)=>({label:v,backgroundColor:COLORS[i%COLORS.length],data:months.map(m=>{const items=(byMonth[m]||[]).filter(r=>r[sf]===v);return Math.round(sum(items,"amt")*100)/100;})}));
     charts.main=new Chart(canvas,{type:"bar",data:{labels:months,datasets:ds},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{color:"#94a3b8",font:{size:10}}},y:{stacked:true,ticks:{color:"#94a3b8",font:{size:10},callback:v=>v+"万"}}},plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{const t=items.reduce((s,i)=>s+i.raw,0);return`合計: ${t.toFixed(1)}万円`;}}}}}});
   }else if(F.tab==="pie"){
     const sv=unique(filteredData.map(r=>r[sf]));
-    const pd=sv.map(v=>({v,s:Math.round(sum(filteredData.filter(r=>r[sf]===v),"amt")*100)/100})).sort((a,b)=>b.s-a.s).slice(0,14);
+    const pd=sv.map(v=>({v,s:Math.round(sum(filteredData.filter(r=>r[sf]===v),"amt")*100)/100})).sort((a,b)=>b.s-a.s);
     const totalPie=pd.reduce((s,d)=>s+d.s,0);
-    charts.main=new Chart(canvas,{type:"doughnut",data:{labels:pd.map(d=>d.v),datasets:[{data:pd.map(d=>d.s),backgroundColor:COLORS.slice(0,pd.length)}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:9},boxWidth:10}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw.toFixed(1)}万円 (${(ctx.raw/totalPie*100).toFixed(0)}%)`}}}}});
-  }else if(F.tab==="line"){
-    const td=months.map(m=>Math.round(sum(byMonth[m]||[],"amt")*100)/100);
-    const fd=months.map(m=>Math.round(sum((byMonth[m]||[]).filter(r=>r.type==="固定費"),"amt")*100)/100);
-    const vd=months.map(m=>Math.round(sum((byMonth[m]||[]).filter(r=>r.type==="変動費"),"amt")*100)/100);
-    charts.main=new Chart(canvas,{type:"line",data:{labels:months,datasets:[{label:"合計",data:td,borderColor:"#6366f1",borderWidth:2.5,pointRadius:3,fill:false},{label:"固定費",data:fd,borderColor:"#10b981",borderWidth:2,pointRadius:2.5,fill:false},{label:"変動費",data:vd,borderColor:"#f59e0b",borderWidth:2,pointRadius:2.5,fill:false}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:"#94a3b8",font:{size:10}}},y:{ticks:{color:"#94a3b8",font:{size:10},callback:v=>v+"万"}}},plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:10}}}}}});
+    charts.main=new Chart(canvas,{type:"doughnut",data:{labels:pd.map(d=>d.v),datasets:[{data:pd.map(d=>d.s),backgroundColor:COLORS.slice(0,pd.length)}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"right",labels:{color:"#94a3b8",font:{size:9},boxWidth:10}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw.toFixed(1)}万円 (${(ctx.raw/totalPie*100).toFixed(0)}%)`}}}}});
   }
 }
 
@@ -463,28 +945,8 @@ function updateTable(){
   const el=document.getElementById("tableSection");if(!el)return;
   const months=getMonths();
   const sf=F.stack;
-  const stackLabels={cat:"カテゴリ",client:"取引先",who:"担当",tm:"売上TM",div:"Div"};
+  const stackLabels={cat:"カテゴリ",client:"取引先",who:"担当",tm:"売上TM",div:"Div",type:"固定/変動"};
   const byMonth=groupBy(filteredData,"month");
-
-  if(F.tab==="line"){
-    const types=["固定費","変動費"];
-    let html=`<h2>月別 固定費／変動費 データ（万円）</h2><table class="data-table"><thead><tr><th>費用タイプ</th>`;
-    months.forEach(m=>{html+=`<th>${m}</th>`;});
-    html+=`<th>合計</th></tr></thead><tbody>`;
-    types.forEach(t=>{
-      let rowTotal=0;
-      html+=`<tr><td>${t}</td>`;
-      months.forEach(m=>{const v=Math.round(sum((byMonth[m]||[]).filter(r=>r.type===t),"amt")*100)/100;rowTotal+=v;html+=`<td class="${v===0?'zero':''}">${v>0?v.toFixed(1):'-'}</td>`;});
-      html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
-    });
-    let grandTotal=0;
-    html+=`<tr class="total-row"><td>合計</td>`;
-    months.forEach(m=>{const v=Math.round(sum(byMonth[m]||[],"amt")*100)/100;grandTotal+=v;html+=`<td>${v.toFixed(1)}</td>`;});
-    html+=`<td>${grandTotal.toFixed(1)}</td></tr>`;
-    html+=`</tbody></table>`;
-    el.innerHTML=html;
-    return;
-  }
 
   const sv=unique(filteredData.map(r=>r[sf]));
   const divTotals2={},tmTotals2={};
@@ -500,12 +962,17 @@ function updateTable(){
 
   const divColors=['rgba(99,102,241,.15)','rgba(16,185,129,.15)','rgba(245,158,11,.15)','rgba(239,68,68,.15)','rgba(6,182,212,.15)','rgba(168,85,247,.15)','rgba(249,115,22,.15)'];
   const divColorMap={};let divColorIdx=0;
-  vs.forEach(({v,div})=>{
+  vs.forEach(({v,div},i)=>{
     if(sf==='cat'&&!(div in divColorMap))divColorMap[div]=divColors[divColorIdx++%divColors.length];
     let rowTotal=0;
     const label=sf==='client'?v.replace(/株式会社|有限会社/g,""):v;
     const bgStyle=sf==='cat'?`style="background:${divColorMap[div]}"` :"";
-    html+=`<tr ${bgStyle}><td title="${v}">${label}</td>`;
+    const isCat=sf==='cat';
+    const rowId=isCat?`id="cat-row-${i}" `:'';
+    const rowClass=isCat?`class="cat-row" `:'';
+    const onClick=isCat?`onclick="toggleProdRows(${i})" `:'';
+    const icon=isCat?`<span class="expand-icon">▶</span>`:'';
+    html+=`<tr ${rowId}${rowClass}${onClick}${bgStyle}><td title="${v}">${icon}${label}</td>`;
     months.forEach(m=>{
       const items=(byMonth[m]||[]).filter(r=>r[sf]===v);
       const val=Math.round(sum(items,"amt")*100)/100;
@@ -513,6 +980,22 @@ function updateTable(){
       html+=`<td class="${val===0?'zero':''}">${val>0?val.toFixed(1):'-'}</td>`;
     });
     html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
+
+    // カテゴリ展開時の商品サブ行
+    if(isCat){
+      const catData=filteredData.filter(r=>r.cat===v);
+      const prods=unique(catData.map(r=>r.prod)).filter(Boolean).sort((a,b)=>sum(catData.filter(r=>r.prod===b),"amt")-sum(catData.filter(r=>r.prod===a),"amt"));
+      prods.forEach(p=>{
+        let pTotal=0;
+        html+=`<tr class="prod-row prod-row-${i}" style="display:none;background:${divColorMap[div]}"><td title="${p}">${p}</td>`;
+        months.forEach(m=>{
+          const val=Math.round(sum((byMonth[m]||[]).filter(r=>r.cat===v&&r.prod===p),"amt")*100)/100;
+          pTotal+=val;
+          html+=`<td class="${val===0?'zero':''}">${val>0?val.toFixed(1):'-'}</td>`;
+        });
+        html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
+      });
+    }
   });
 
   let grandTotal=0;
@@ -525,7 +1008,7 @@ function updateTable(){
 
 function checkPw(){
   const val=document.getElementById("pw-input").value;
-  if(val==="yomishukeitest"){
+  if(val==="SHO-SAN-dash"){
     sessionStorage.setItem("auth","ok");
     document.getElementById("pw-screen").style.display="none";
     document.getElementById("app").style.display="block";
