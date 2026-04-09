@@ -32,8 +32,8 @@
     .chip-multi{border:1.5px solid transparent;}
     .chip-multi.active{background:var(--accent);color:#fff;border-color:var(--accent);}
     .chip-multi.selected{background:rgba(99,102,241,.2);color:var(--accent);border-color:var(--accent);}
-    .chip-all{background:rgba(20,184,166,.15);color:#0d9488;border:1.5px solid rgba(20,184,166,.3);}
-    .chip-all.active{background:#14b8a6;color:#fff;border-color:#14b8a6;}
+    .chip-all{background:rgba(148,163,184,.12);color:#94a3b8;border:1.5px solid rgba(148,163,184,.25);}
+    .chip-all.active{background:#64748b;color:#fff;border-color:#64748b;}
     .expand-icon{display:inline-block;transition:transform .2s;margin-right:5px;font-size:9px;opacity:.7;}
     tr.cat-row{cursor:pointer;}tr.cat-row:hover td:first-child .expand-icon{opacity:1;}
     tr.cat-row.expanded .expand-icon{transform:rotate(90deg);}
@@ -42,9 +42,10 @@
     .multi-hint{color:var(--dim);font-size:9px;font-style:italic;margin-left:4px;}
     .sel{padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;appearance:auto;}
     .sel:focus{outline:1px solid var(--accent);}
-    .tabs{display:flex;gap:4px;margin-bottom:10px;}
-    .tab{padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-weight:600;background:transparent;color:var(--muted);}
+    .tabs{display:flex;gap:3px;margin-bottom:10px;background:#0f1f35;border-radius:8px;padding:4px;width:fit-content;}
+    .tab{padding:5px 12px;border-radius:5px;border:none;cursor:pointer;font-size:11px;font-weight:600;background:transparent;color:var(--muted);transition:all .15s;}
     .tab.active{background:var(--accent);color:#fff;}
+    .tab:hover:not(.active){background:var(--border);color:var(--text);}
     .chart-wrap{background:var(--surface);border-radius:12px;padding:16px;}
     canvas{max-height:1000px;min-height:600px;}
     .stack-row{display:flex;gap:4px;align-items:center;margin-bottom:12px;}
@@ -69,10 +70,10 @@
     .data-table .total-row td:first-child{color:var(--accent);}
     .data-table .zero{color:var(--border);}
     /* Page tabs */
-    .page-tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px;}
-    .page-tab{padding:7px 18px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
-    .page-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-    .page-tab:hover:not(.active){background:var(--surface);border-color:var(--border);}
+    .page-tabs{display:flex;gap:4px;margin-bottom:16px;background:#0f1f35;border-radius:10px;padding:5px;width:fit-content;}
+    .page-tab{padding:7px 20px;border-radius:7px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .page-tab.active{background:var(--accent);color:#fff;}
+    .page-tab:hover:not(.active){background:var(--border);color:var(--text);}
     /* Who page */
     .two-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
     @media(max-width:900px){.two-charts{grid-template-columns:1fr;}}
@@ -104,15 +105,16 @@
   <div class="loading"><div class="spinner">⟳</div><div style="font-size:16px;font-weight:700;">データを読み込み中...</div><div style="font-size:12px;color:var(--dim);margin-top:4px;">スプレッドシートからリアルタイム取得</div></div>
 </div>
 <script>
-const API_URL="https://script.google.com/macros/s/AKfycbyaGCwuIUf6v2-1uLUARXMwkg6RGArfX_JD1hEczcqclofGOQaRwycKEuu-iN3q0VuGMw/exec";
+const API_URL="https://script.google.com/macros/s/AKfycbz2mFlkr-i6Y27rAjkmw1ABPY6Xmoun9MPPtmHT4KYUFUSILkH-ZyUZ4SK0SyyzCoPxQw/exec";
 const API_KEY="yomi-shukei-test";
 const COLORS=["#6366f1","#f59e0b","#10b981","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#06b6d4","#84cc16","#a855f7","#e11d48","#0ea5e9","#65a30d"];
 
-let rawData=[], filteredData=[], allMonths=[];
+let rawData=[], filteredData=[], allMonths=[], WHO_ORDER=[];
+function whoSort(vals){return[...vals].sort((a,b)=>{const ia=WHO_ORDER.indexOf(a),ib=WHO_ORDER.indexOf(b);if(ia===-1&&ib===-1)return a.localeCompare(b,"ja");if(ia===-1)return 1;if(ib===-1)return -1;return ia-ib;});}
 let companyMap={};
 let meta={updated:"",count:0};
 let charts={};
-let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:"all",clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
+let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:[],showClientPref:false,showClientArea:false,showClPref:false,showClArea:false,clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
 
 function parseMonth(v){
   if(!v)return null;const s=String(v);let y,m;
@@ -142,6 +144,7 @@ async function fetchData(){
     rawData=json.data.map(r=>{const pm=parseMonth(r["計上月"]);const co=companyMap[r["取引先"]]||{};return{cd:r["ヨミコード"]||"",who:r["担当"]||"",client:r["取引先"]||"",month:pm?pm.label:"",monthSort:pm?pm.sort:0,prod:r["商品名"]||"",amt:parseFloat(r["売上(万円)"])||0,st:r["ステータス"]||"",cat:r["大分類"]||"",type:r["製品タイプ"]||"",tm:r["売上TM"]||"",div:r["売上Div"]||"",ki:r["期"]||"",clientSt:co["取引状況"]||"",clientPref:co["都道府県／地域"]||"",clientArea:co["施工エリア"]||"",clientSeg:co["棟数セグメント"]||""};});
     const mSet=new Map();rawData.forEach(r=>{if(r.month&&r.monthSort)mSet.set(r.month,r.monthSort);});
     allMonths=[...mSet.entries()].sort((a,b)=>a[1]-b[1]).map(e=>({label:e[0],sort:e[1]}));
+    WHO_ORDER=[...new Set(rawData.map(r=>r.who))].filter(Boolean);
     render();
   }catch(e){document.getElementById("app").innerHTML=`<div class="loading"><div style="font-size:32px;margin-bottom:12px;">⚠️</div><div style="font-size:16px;font-weight:700;margin-bottom:8px;">データ取得エラー</div><div style="font-size:12px;color:#ef4444;margin-bottom:16px;">${e.message}</div><button class="btn btn-accent" onclick="fetchData()">再読み込み</button></div>`;}
 }
@@ -161,7 +164,7 @@ function applyFilters(){
     if(F.clientSt!=="all"&&r.clientSt!==F.clientSt)return false;
     if(F.clientPref.length>0&&!F.clientPref.includes(r.clientPref))return false;
     if(F.clientArea.length>0&&!F.clientArea.some(a=>(r.clientArea||"").split(/[；;]/).map(s=>s.trim()).includes(a)))return false;
-    if(F.clientSeg!=="all"&&r.clientSeg!==F.clientSeg)return false;
+    if(F.clientSeg.length>0&&!F.clientSeg.includes(r.clientSeg))return false;
     if(r.monthSort<mFrom||r.monthSort>mTo)return false;
     return true;
   });
@@ -189,7 +192,7 @@ function toggleProdRows(idx){
   document.querySelectorAll(`.prod-row-${idx}`).forEach(r=>r.style.display=isExp?'none':'');
   catRow.classList.toggle('expanded',!isExp);
 }
-function resetFilters(){F.cat=[];F.st=[];F.client="all";F.type="all";F.who="all";F.div="all";F.ki="all";F.tm="all";F.monthFrom="all";F.monthTo="all";F.clientSt="all";F.clientPref=[];F.clientArea=[];F.clientSeg="all";render();}
+function resetFilters(){F.cat=[];F.st=[];F.client="all";F.type="all";F.who="all";F.div="all";F.ki="all";F.tm="all";F.monthFrom="all";F.monthTo="all";F.clientSt="all";F.clientPref=[];F.clientArea=[];F.clientSeg=[];render();}
 function resetWhoFilters(){F.whoCat=[];F.whoSt=[];F.whoKi="all";F.whoTm="all";F.whoDiv="all";F.whoMonthFrom="all";F.whoMonthTo="all";render();}
 
 // フィルターUI生成（グローバルスコープで両ページから使用）
@@ -216,10 +219,16 @@ function monthSelectHtml(key,label){
   return h+`</select>`;
 }
 
-function pageTabsHtml(){
-  return `<div class="page-tabs">
-    <button class="page-tab ${F.page==='main'?'active':''}" onclick="F.page='main';render()">売上</button>
-    <button class="page-tab ${F.page==='cl'?'active':''}" onclick="F.page='cl';render()">CL情報</button>
+function pageTabsHtml(subtitle){
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+    <div class="page-tabs" style="margin-bottom:0;">
+      <button class="page-tab ${F.page==='main'?'active':''}" onclick="F.page='main';render()">売上</button>
+      <button class="page-tab ${F.page==='cl'?'active':''}" onclick="F.page='cl';render()">CL情報</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="sub">${subtitle||""}</div>
+      <button class="btn" onclick="fetchData()">⟳ 更新</button>
+    </div>
   </div>`;
 }
 function salesTabsHtml(){
@@ -234,8 +243,8 @@ function render(){
   if(F.page==='cl'){renderClPage();return;}
   if(F.salesTab==='who'){renderWhoPage();return;}
 
-  const cats=unique(rawData.map(r=>r.cat)),whos=unique(rawData.map(r=>r.who)),divs=unique(rawData.map(r=>r.div)),kis=unique(rawData.map(r=>r.ki)),sts=unique(rawData.map(r=>r.st)),tms=unique(rawData.map(r=>r.tm));
-  const clientSts=unique(rawData.map(r=>r.clientSt)),clientPrefs=geoSort(unique(rawData.map(r=>r.clientPref)).filter(Boolean)),clientAreas=geoSort(unique(rawData.flatMap(r=>(r.clientArea||"").split(/[；;]/).map(s=>s.trim()).filter(Boolean)))),clientSegs=unique(rawData.map(r=>r.clientSeg));
+  const cats=unique(rawData.map(r=>r.cat)),whos=whoSort(unique(rawData.map(r=>r.who))),divs=unique(rawData.map(r=>r.div)),kis=unique(rawData.map(r=>r.ki)),sts=unique(rawData.map(r=>r.st)),tms=unique(rawData.map(r=>r.tm));
+  const clientSts=unique(rawData.map(r=>r.clientSt)),clientPrefs=geoSort(unique(rawData.map(r=>r.clientPref)).filter(Boolean)),clientAreas=geoSort(unique(rawData.flatMap(r=>(r.clientArea||"").split(/[；;]/).map(s=>s.trim()).filter(Boolean)))),clientSegs=segSortCl(unique(rawData.map(r=>r.clientSeg)).filter(Boolean));
   const whoCount={};rawData.forEach(r=>{whoCount[r.who]=(whoCount[r.who]||0)+1;});
   const whoBase=F.who!=="all"?rawData.filter(r=>r.who===F.who):rawData;
   const clients=unique(whoBase.map(r=>r.client));
@@ -243,13 +252,9 @@ function render(){
   const updStr=meta.updated?new Date(meta.updated).toLocaleString("ja-JP"):"-";
 
   document.getElementById("app").innerHTML=`
-    ${pageTabsHtml()}
-    <div class="header">
-      <div><div class="sub">リアルタイム連携 ｜ ${filteredData.length.toLocaleString()}件表示 / ${rawData.length.toLocaleString()}件中 ｜ 最終更新: ${updStr}</div></div>
-      <button class="btn" onclick="fetchData()">⟳ 更新</button>
-    </div>
-    ${salesTabsHtml()}
+    ${pageTabsHtml(`リアルタイム連携 ｜ ${filteredData.length.toLocaleString()}件表示 / ${rawData.length.toLocaleString()}件中 ｜ 最終更新: ${updStr}`)}
     <div class="kpi-grid" id="kpis"></div>
+    ${salesTabsHtml()}
     <div class="filters">
       <div class="filter-header"><span>フィルター</span><button class="btn" style="padding:3px 10px;font-size:10px;" onclick="F.showFilters=!F.showFilters;render();">${F.showFilters?"閉じる ▲":"開く ▼"}</button></div>
       <div style="display:${F.showFilters?'block':'none'}">
@@ -266,9 +271,15 @@ function render(){
           <button class="chip ${F.type==='変動費'?'active':''}" onclick="setFilter('type','変動費')">変動費</button>
         </div>
         <div class="filter-row"><span class="filter-label">取引先:</span>${chipsHtml('client',clients,25)}</div>
-        <div class="filter-row"><span class="filter-label">都道府県:</span>${multiChipsHtml('clientPref',clientPrefs)}</div>
-        <div class="filter-row"><span class="filter-label">施工エリア:</span>${multiChipsHtml('clientArea',clientAreas)}</div>
-        <div class="filter-row"><span class="filter-label">棟数セグメント:</span>${chipsHtml('clientSeg',clientSegs)}</div>
+        <div class="filter-row" style="flex-wrap:wrap;gap:5px;">
+          <span class="filter-label" style="cursor:pointer;user-select:none;" onclick="F.showClientPref=!F.showClientPref;render();">都道府県</span>
+          ${F.showClientPref?`<button class="chip" onclick="F.showClientPref=false;render();">選択肢を閉じる ▲</button>`+multiChipsHtml('clientPref',clientPrefs):(F.clientPref.length>0?`<span style="color:var(--accent);font-size:10px;font-weight:600;">${F.clientPref.length}件選択中</span>`:`<button class="chip" onclick="F.showClientPref=true;render();">展開 ▼</button>`)}
+        </div>
+        <div class="filter-row" style="flex-wrap:wrap;gap:5px;">
+          <span class="filter-label" style="cursor:pointer;user-select:none;" onclick="F.showClientArea=!F.showClientArea;render();">施工エリア</span>
+          ${F.showClientArea?`<button class="chip" onclick="F.showClientArea=false;render();">選択肢を閉じる ▲</button>`+multiChipsHtml('clientArea',clientAreas):(F.clientArea.length>0?`<span style="color:var(--accent);font-size:10px;font-weight:600;">${F.clientArea.length}件選択中</span>`:`<button class="chip" onclick="F.showClientArea=true;render();">展開 ▼</button>`)}
+        </div>
+        <div class="filter-row"><span class="filter-label">棟数セグメント:</span>${multiChipsHtml('clientSeg',clientSegs)}</div>
         <button class="btn" style="margin-top:6px;font-size:10px;padding:4px 12px;" onclick="resetFilters()">フィルターをリセット</button>
       </div>
     </div>
@@ -305,23 +316,20 @@ function renderWhoPage(){
   const kis=unique(rawData.map(r=>r.ki));
   const tms=unique(rawData.map(r=>r.tm));
   const divs=unique(rawData.map(r=>r.div));
-  const whoTotals=unique(data.map(r=>r.who)).map(w=>({w,s:sum(data.filter(r=>r.who===w),"amt")})).sort((a,b)=>b.s-a.s);
+  const whoAmts=unique(data.map(r=>r.who)).map(w=>({w,s:sum(data.filter(r=>r.who===w),"amt")}));
+  const top=whoAmts.slice().sort((a,b)=>b.s-a.s)[0];
+  const whoTotals=whoSort(whoAmts.map(x=>x.w)).map(w=>({w,s:whoAmts.find(x=>x.w===w).s}));
   const total=sum(data,"amt");
-  const top=whoTotals[0];
   const updStr=meta.updated?new Date(meta.updated).toLocaleString("ja-JP"):"-";
 
   document.getElementById("app").innerHTML=`
-    ${pageTabsHtml()}
-    <div class="header">
-      <div><div class="sub">リアルタイム連携 ｜ ${data.length.toLocaleString()}件 ｜ 最終更新: ${updStr}</div></div>
-      <button class="btn" onclick="fetchData()">⟳ 更新</button>
-    </div>
-    ${salesTabsHtml()}
+    ${pageTabsHtml(`リアルタイム連携 ｜ ${data.length.toLocaleString()}件 ｜ 最終更新: ${updStr}`)}
     <div class="kpi-grid">
       <div class="kpi"><div class="kpi-label">総売上（絞込後）</div><div class="kpi-val">${total>=10000?(total/10000).toFixed(2)+"億円":total.toFixed(0)+"万円"}</div><div class="kpi-sub">${data.length.toLocaleString()}件</div></div>
       <div class="kpi"><div class="kpi-label">担当人数</div><div class="kpi-val">${whoTotals.length}</div><div class="kpi-sub">名</div></div>
       ${top?`<div class="kpi"><div class="kpi-label">トップ担当</div><div class="kpi-val" style="font-size:16px;">${top.w}</div><div class="kpi-sub">${top.s.toFixed(0)}万円</div></div>`:""}
     </div>
+    ${salesTabsHtml()}
     <div class="filters">
       <div class="filter-header"><span>フィルター（担当・取引先以外）</span><button class="btn" style="padding:3px 10px;font-size:10px;" onclick="F.showFilters=!F.showFilters;render();">${F.showFilters?"閉じる ▲":"開く ▼"}</button></div>
       <div style="display:${F.showFilters?'block':'none'}">
@@ -668,8 +676,14 @@ function renderClPage(){
         <div class="filter-row"><span class="filter-label">担当者:</span>${clChips('clTanto',tantos)}</div>
 
 
-        <div class="filter-row"><span class="filter-label">都道府県:</span>${multiChipsHtml('clPref',prefs)}</div>
-        <div class="filter-row"><span class="filter-label">施工エリア:</span>${multiChipsHtml('clArea',areas)}</div>
+        <div class="filter-row" style="flex-wrap:wrap;gap:5px;">
+          <span class="filter-label" style="cursor:pointer;user-select:none;" onclick="F.showClPref=!F.showClPref;render();">都道府県</span>
+          ${F.showClPref?`<button class="chip" onclick="F.showClPref=false;render();">選択肢を閉じる ▲</button>`+multiChipsHtml('clPref',prefs):(F.clPref.length>0?`<span style="color:var(--accent);font-size:10px;font-weight:600;">${F.clPref.length}件選択中</span>`:`<button class="chip" onclick="F.showClPref=true;render();">展開 ▼</button>`)}
+        </div>
+        <div class="filter-row" style="flex-wrap:wrap;gap:5px;">
+          <span class="filter-label" style="cursor:pointer;user-select:none;" onclick="F.showClArea=!F.showClArea;render();">施工エリア</span>
+          ${F.showClArea?`<button class="chip" onclick="F.showClArea=false;render();">選択肢を閉じる ▲</button>`+multiChipsHtml('clArea',areas):(F.clArea.length>0?`<span style="color:var(--accent);font-size:10px;font-weight:600;">${F.clArea.length}件選択中</span>`:`<button class="chip" onclick="F.showClArea=true;render();">展開 ▼</button>`)}
+        </div>
         <button class="btn" style="margin-top:6px;font-size:10px;padding:4px 12px;" onclick="resetClFilters()">フィルターをリセット</button>
       </div>
     </div>
@@ -698,11 +712,7 @@ function renderClPage(){
     <div class="chart-wrap"><div class="chart-title">担当者別・棟数セグメント（会社数）</div><canvas id="clChart5" style="min-height:300px;max-height:380px;"></canvas><div id="clChart5Table" style="margin-top:12px;overflow-x:auto;"></div></div>`;
 
   document.getElementById("app").innerHTML=`
-    ${pageTabsHtml()}
-    <div class="header">
-      <div><div class="sub">リアルタイム連携 ｜ ${companies.length}社 / ${allCompanies.length}社中 ｜ 最終更新: ${updStr}</div></div>
-      <button class="btn" onclick="fetchData()">⟳ 更新</button>
-    </div>
+    ${pageTabsHtml(`リアルタイム連携 ｜ ${companies.length}社 / ${allCompanies.length}社中 ｜ 最終更新: ${updStr}`)}
     <div class="kpi-grid">
       <div class="kpi"><div class="kpi-label">会社数（取引中）</div><div class="kpi-val">${companies.filter(c=>(c["取引状況"]||"")==="取引中").length}</div><div class="kpi-sub">社</div></div>
       <div class="kpi"><div class="kpi-label">総売上（Jヨミ）</div><div class="kpi-val">${(v=>v>=10000?(v/10000).toFixed(2)+"億円":v.toFixed(0)+"万円")(sum((F.clTab==='tanto'?tantoSalesData:salesData).filter(r=>r.st==="J"),"amt"))}</div><div class="kpi-sub">${(F.clTab==='tanto'?tantoSalesData:salesData).filter(r=>r.st==="J").length}件</div></div>
@@ -723,7 +733,7 @@ function resetClFilters(){F.clTanto="all";F.clSt="all";F.clSeg="all";F.clPref=[]
 function resetTantoFilters(){F.tantoKi="all";F.tantoMonthFrom="all";F.tantoMonthTo="all";render();}
 
 function updateClCharts(companies,salesData,tantoSalesData){
-  const tantosSorted=unique(companies.map(c=>c["担当者"]||"")).filter(Boolean).sort((a,b)=>companies.filter(c=>c["担当者"]===b).length-companies.filter(c=>c["担当者"]===a).length);
+  const tantosSorted=whoSort(unique(companies.map(c=>c["担当者"]||"")).filter(Boolean));
   const sts=unique(companies.map(c=>c["取引状況"]||"")).filter(Boolean);
   const segs=unique(companies.map(c=>c["棟数セグメント"]||"")).filter(Boolean);
   if(F.clTab==='tanto'){updateClTantoCharts(companies,tantoSalesData,tantosSorted,sts);return;}
@@ -870,7 +880,7 @@ function updateClTantoCharts(companies,salesData,tantosSorted,sts){
 
 function updateClTable(companies,salesData){
   const el=document.getElementById("clTableSection");if(!el)return;
-  const tantosSorted=unique(companies.map(c=>c["担当者"]||"")).filter(Boolean).sort((a,b)=>companies.filter(c=>c["担当者"]===b).length-companies.filter(c=>c["担当者"]===a).length);
+  const tantosSorted=whoSort(unique(companies.map(c=>c["担当者"]||"")).filter(Boolean));
   const sts=unique(companies.map(c=>c["取引状況"]||"")).filter(Boolean);
 
   let html=`<h2>担当者別・取引状況（会社数）</h2><table class="data-table"><thead><tr><th>担当者</th>`;
