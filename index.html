@@ -87,10 +87,10 @@
     .page-tab{padding:8px 20px;border-radius:0;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;border-bottom:3px solid transparent;margin-bottom:-2px;}
     .page-tab.active{background:transparent;color:var(--text);border-bottom-color:var(--accent);}
     .page-tab:hover:not(.active){background:transparent;color:var(--text);}
-    .s-panel::-webkit-scrollbar{width:4px;}
-    .s-panel::-webkit-scrollbar-track{background:transparent;}
-    .s-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
-    .s-panel::-webkit-scrollbar-thumb:hover{background:var(--dim);}
+    ::-webkit-scrollbar{width:4px;height:4px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+    ::-webkit-scrollbar-thumb:hover{background:var(--dim);}
     /* Who page */
     .two-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
     @media(max-width:900px){.two-charts{grid-template-columns:1fr;}}
