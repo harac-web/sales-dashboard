@@ -65,7 +65,7 @@
     .spinner{font-size:36px;animation:spin 1s linear infinite;margin-bottom:12px;}
     @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
     .footer{color:#334155;font-size:9px;text-align:center;margin-top:12px;}
-    .controls-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;}
+    .controls-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;position:sticky;top:0;z-index:9;background:var(--bg);padding:8px 0 10px;}
     .month-range{display:flex;align-items:center;gap:4px;}
     .month-range span{color:var(--dim);font-size:10px;}
     /* Table styles */
@@ -260,7 +260,7 @@ function pageTabsHtml(subtitle){
   if(!allowedTabs.includes(F.page))F.page=allowedTabs[0]||'main';
   const tabDefs=[{id:'main',label:'売上'},{id:'cl',label:'CL情報'}].filter(t=>allowedTabs.includes(t.id));
   const tabsHtml=tabDefs.map(t=>`<button class="page-tab ${F.page===t.id?'active':''}" onclick="F.page='${t.id}';render()">${t.label}</button>`).join('');
-  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:10;background:var(--bg);padding:20px 0 8px;margin:-20px 0 0;">
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
     <div class="page-tabs" style="margin-bottom:0;">${tabsHtml}</div>
     <div style="display:flex;align-items:center;gap:10px;">
       <div class="sub">${subtitle||""}</div>
