@@ -65,7 +65,9 @@
     .spinner{font-size:36px;animation:spin 1s linear infinite;margin-bottom:12px;}
     @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
     .footer{color:#334155;font-size:9px;text-align:center;margin-top:12px;}
-    .controls-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;position:sticky;top:0;z-index:9;background:var(--bg);padding:8px 0 10px;}
+    .controls-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;}
+    .sticky-header{position:sticky;top:0;z-index:10;background:var(--bg);padding-bottom:12px;}
+    .scroll-body{overflow-y:auto;}
     .month-range{display:flex;align-items:center;gap:4px;}
     .month-range span{color:var(--dim);font-size:10px;}
     /* Table styles */
@@ -291,19 +293,21 @@ function render(){
   const updStr=meta.updated?new Date(meta.updated).toLocaleString("ja-JP"):"-";
 
   document.getElementById("app").innerHTML=`
-    ${pageTabsHtml(`リアルタイム連携 ｜ ${filteredData.length.toLocaleString()}件表示 / ${rawData.length.toLocaleString()}件中 ｜ 最終更新: ${updStr}`)}
-    <div class="kpi-grid" id="kpis"></div>
-    <div class="controls-row">
-      ${salesTabsHtml()}
-      <div style="width:24px;flex-shrink:0;"></div>
-      <div class="stack-row" style="display:flex;margin-bottom:0;flex:1;flex-wrap:wrap;">
-        <span class="stack-label">内訳:</span>
-        <button class="chip ${F.stack==='cat'?'active':''}" onclick="F.stack='cat';render();">カテゴリ</button>
-        <button class="chip ${F.stack==='client'?'active':''}" onclick="F.stack='client';render();">取引先</button>
-        <button class="chip ${F.stack==='who'?'active':''}" onclick="F.stack='who';render();">担当</button>
-        <button class="chip ${F.stack==='tm'?'active':''}" onclick="F.stack='tm';render();">売上TM</button>
-        <button class="chip ${F.stack==='div'?'active':''}" onclick="F.stack='div';render();">Div</button>
-        <button class="chip ${F.stack==='type'?'active':''}" onclick="F.stack='type';render();">固定/変動</button>
+    <div class="sticky-header">
+      ${pageTabsHtml(`リアルタイム連携 ｜ ${filteredData.length.toLocaleString()}件表示 / ${rawData.length.toLocaleString()}件中 ｜ 最終更新: ${updStr}`)}
+      <div class="kpi-grid" id="kpis"></div>
+      <div class="controls-row">
+        ${salesTabsHtml()}
+        <div style="width:24px;flex-shrink:0;"></div>
+        <div class="stack-row" style="display:flex;margin-bottom:0;flex:1;flex-wrap:wrap;">
+          <span class="stack-label">内訳:</span>
+          <button class="chip ${F.stack==='cat'?'active':''}" onclick="F.stack='cat';render();">カテゴリ</button>
+          <button class="chip ${F.stack==='client'?'active':''}" onclick="F.stack='client';render();">取引先</button>
+          <button class="chip ${F.stack==='who'?'active':''}" onclick="F.stack='who';render();">担当</button>
+          <button class="chip ${F.stack==='tm'?'active':''}" onclick="F.stack='tm';render();">売上TM</button>
+          <button class="chip ${F.stack==='div'?'active':''}" onclick="F.stack='div';render();">Div</button>
+          <button class="chip ${F.stack==='type'?'active':''}" onclick="F.stack='type';render();">固定/変動</button>
+        </div>
       </div>
     </div>
     <div class="chart-wrap">
@@ -341,13 +345,15 @@ function renderWhoPage(){
   const updStr=meta.updated?new Date(meta.updated).toLocaleString("ja-JP"):"-";
 
   document.getElementById("app").innerHTML=`
-    ${pageTabsHtml(`リアルタイム連携 ｜ ${data.length.toLocaleString()}件 ｜ 最終更新: ${updStr}`)}
-    <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-label">総売上（絞込後）</div><div class="kpi-val">${total>=10000?(total/10000).toFixed(2)+"億円":total.toFixed(0)+"万円"}</div><div class="kpi-sub">${data.length.toLocaleString()}件</div></div>
-      <div class="kpi"><div class="kpi-label">担当人数</div><div class="kpi-val">${whoTotals.length}</div><div class="kpi-sub">名</div></div>
-      ${top?`<div class="kpi"><div class="kpi-label">トップ担当</div><div class="kpi-val" style="font-size:16px;">${top.w}</div><div class="kpi-sub">${top.s.toFixed(0)}万円</div></div>`:""}
+    <div class="sticky-header">
+      ${pageTabsHtml(`リアルタイム連携 ｜ ${data.length.toLocaleString()}件 ｜ 最終更新: ${updStr}`)}
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">総売上（絞込後）</div><div class="kpi-val">${total>=10000?(total/10000).toFixed(2)+"億円":total.toFixed(0)+"万円"}</div><div class="kpi-sub">${data.length.toLocaleString()}件</div></div>
+        <div class="kpi"><div class="kpi-label">担当人数</div><div class="kpi-val">${whoTotals.length}</div><div class="kpi-sub">名</div></div>
+        ${top?`<div class="kpi"><div class="kpi-label">トップ担当</div><div class="kpi-val" style="font-size:16px;">${top.w}</div><div class="kpi-sub">${top.s.toFixed(0)}万円</div></div>`:""}
+      </div>
+      ${salesTabsHtml()}
     </div>
-    ${salesTabsHtml()}
     <div class="chart-wrap" style="margin-bottom:18px;"><div class="chart-title">月別売上推移（担当別）</div><canvas id="whoTrendChart" style="min-height:320px;max-height:400px;"></canvas></div>
     <div class="chart-wrap"><div class="chart-title">担当別・大分類内訳</div><canvas id="whoBreakdownChart" style="min-height:320px;max-height:400px;"></canvas><div id="whoTableSection" style="margin-top:12px;overflow-x:auto;"></div></div>
     <div class="chart-wrap"><div class="chart-title">担当者別・1社あたり売上単価（Jヨミ）（万円）</div><div id="whoUnitPriceTableSection" style="overflow-x:auto;"></div></div>
@@ -692,15 +698,17 @@ function renderClPage(){
     <div class="chart-wrap"><div class="chart-title">担当者別・棟数セグメント（会社数）</div><canvas id="clChart5" style="min-height:300px;max-height:380px;"></canvas><div id="clChart5Table" style="margin-top:12px;overflow-x:auto;"></div></div>`;
 
   document.getElementById("app").innerHTML=`
-    ${pageTabsHtml(`リアルタイム連携 ｜ ${companies.length}社 / ${allCompanies.length}社中 ｜ 最終更新: ${updStr}`)}
-    <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-label">会社数（取引中）</div><div class="kpi-val">${companies.filter(c=>(c["取引状況"]||"")==="取引中").length}</div><div class="kpi-sub">社</div></div>
-      <div class="kpi"><div class="kpi-label">総売上（Jヨミ）</div><div class="kpi-val">${(v=>v>=10000?(v/10000).toFixed(2)+"億円":v.toFixed(0)+"万円")(sum((F.clTab==='tanto'?tantoSalesData:salesData).filter(r=>r.st==="J"),"amt"))}</div><div class="kpi-sub">${(F.clTab==='tanto'?tantoSalesData:salesData).filter(r=>r.st==="J").length}件</div></div>
-      <div class="kpi"><div class="kpi-label">担当者数</div><div class="kpi-val">${unique(companies.map(c=>c["担当者"]||"")).length}</div><div class="kpi-sub">名</div></div>
-    </div>
-    <div class="tabs" style="margin-bottom:0;">
-      <button class="tab ${F.clTab==='overview'?'active':''}" onclick="F.clTab='overview';render();">全体</button>
-      <button class="tab ${F.clTab==='tanto'?'active':''}" onclick="F.clTab='tanto';render();">担当者別</button>
+    <div class="sticky-header">
+      ${pageTabsHtml(`リアルタイム連携 ｜ ${companies.length}社 / ${allCompanies.length}社中 ｜ 最終更新: ${updStr}`)}
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">会社数（取引中）</div><div class="kpi-val">${companies.filter(c=>(c["取引状況"]||"")==="取引中").length}</div><div class="kpi-sub">社</div></div>
+        <div class="kpi"><div class="kpi-label">総売上（Jヨミ）</div><div class="kpi-val">${(v=>v>=10000?(v/10000).toFixed(2)+"億円":v.toFixed(0)+"万円")(sum((F.clTab==='tanto'?tantoSalesData:salesData).filter(r=>r.st==="J"),"amt"))}</div><div class="kpi-sub">${(F.clTab==='tanto'?tantoSalesData:salesData).filter(r=>r.st==="J").length}件</div></div>
+        <div class="kpi"><div class="kpi-label">担当者数</div><div class="kpi-val">${unique(companies.map(c=>c["担当者"]||"")).length}</div><div class="kpi-sub">名</div></div>
+      </div>
+      <div class="tabs" style="margin-bottom:0;">
+        <button class="tab ${F.clTab==='overview'?'active':''}" onclick="F.clTab='overview';render();">全体</button>
+        <button class="tab ${F.clTab==='tanto'?'active':''}" onclick="F.clTab='tanto';render();">担当者別</button>
+      </div>
     </div>
     ${F.clTab==='overview'?overviewContent:tantoContent}
     <div class="footer">スプレッドシートからリアルタイム取得 ｜ 「更新」ボタンで最新データを反映</div>
