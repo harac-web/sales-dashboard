@@ -1021,7 +1021,9 @@ function updateTable(){
     months.forEach(m=>{
       const cnt=snap.filter(r=>r.month===m&&r.prod===prod).length;
       rowTotal+=cnt;
-      html2+=`<td class="${cnt===0?'zero':''}">${cnt>0?cnt:'-'}</td>`;
+      html2+=cnt>0
+        ?`<td class="cell-clickable" onclick="openCellDetail('${m}','${esc(prod)}','prod')">${cnt}</td>`
+        :`<td class="zero">-</td>`;
     });
     cntGrandTotal+=rowTotal;
     html2+=`<td>${rowTotal>0?rowTotal:'-'}</td></tr>`;
