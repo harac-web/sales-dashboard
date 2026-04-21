@@ -979,7 +979,9 @@ function updateTable(){
         months.forEach(m=>{
           const val=Math.round(sum((byMonth[m]||[]).filter(r=>r.cat===v&&r.prod===p),"amt")*100)/100;
           pTotal+=val;
-          html+=`<td class="${val===0?'zero':''}">${val>0?val.toFixed(1):'-'}</td>`;
+          html+=val>0
+            ?`<td class="cell-clickable" onclick="openCellDetail('${m}','${esc(p)}','prod')">${val.toFixed(1)}</td>`
+            :`<td class="zero">-</td>`;
         });
         html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
       });
