@@ -23,9 +23,9 @@
     .kpi-sub{color:var(--dim);font-size:10px;margin-top:2px;}
     .filters{background:var(--surface);border-radius:12px;padding:14px;margin-bottom:18px;}
     .filter-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-    #layout{display:flex;min-height:100vh;}
-    .s-panel{width:240px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--surface);border-right:1px solid var(--border);padding:14px 12px;}
-    .s-main{flex:1;overflow-x:hidden;min-width:0;padding:20px 16px;}
+    #layout{display:flex;height:100vh;overflow:hidden;}
+    .s-panel{width:240px;flex-shrink:0;height:100vh;overflow-y:auto;background:var(--surface);border-right:1px solid var(--border);padding:14px 12px;}
+    .s-main{flex:1;overflow-y:auto;overflow-x:hidden;min-width:0;padding:20px 16px;}
     .s-label-row{display:flex;align-items:center;justify-content:space-between;margin:16px 0 5px;}
     .s-label{font-size:11px;color:var(--text);font-weight:700;padding:3px 0 3px 7px;border-left:3px solid var(--accent);}
     .s-clear{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#f87171;font-size:10px;font-weight:600;cursor:pointer;padding:2px 7px;border-radius:10px;white-space:nowrap;}
@@ -80,10 +80,14 @@
     .data-table .total-row td:first-child{color:var(--accent);}
     .data-table .zero{color:var(--border);}
     /* Page tabs */
-    .page-tabs{display:flex;gap:4px;margin-bottom:16px;background:#0f1f35;border-radius:10px;padding:5px;width:fit-content;}
-    .page-tab{padding:7px 20px;border-radius:7px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
-    .page-tab.active{background:var(--accent);color:#fff;}
-    .page-tab:hover:not(.active){background:var(--border);color:var(--text);}
+    .page-tabs{display:flex;gap:0;margin-bottom:0;background:transparent;border-radius:0;padding:0;border-bottom:2px solid var(--border);width:fit-content;}
+    .page-tab{padding:8px 20px;border-radius:0;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;border-bottom:3px solid transparent;margin-bottom:-2px;}
+    .page-tab.active{background:transparent;color:var(--text);border-bottom-color:var(--accent);}
+    .page-tab:hover:not(.active){background:transparent;color:var(--text);}
+    .s-panel::-webkit-scrollbar{width:4px;}
+    .s-panel::-webkit-scrollbar-track{background:transparent;}
+    .s-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+    .s-panel::-webkit-scrollbar-thumb:hover{background:var(--dim);}
     /* Who page */
     .two-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
     @media(max-width:900px){.two-charts{grid-template-columns:1fr;}}
@@ -255,7 +259,7 @@ function pageTabsHtml(subtitle){
   if(!allowedTabs.includes(F.page))F.page=allowedTabs[0]||'main';
   const tabDefs=[{id:'main',label:'売上'},{id:'cl',label:'CL情報'}].filter(t=>allowedTabs.includes(t.id));
   const tabsHtml=tabDefs.map(t=>`<button class="page-tab ${F.page===t.id?'active':''}" onclick="F.page='${t.id}';render()">${t.label}</button>`).join('');
-  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;position:sticky;top:-20px;z-index:10;background:var(--bg);padding-top:20px;margin-top:-20px;">
     <div class="page-tabs" style="margin-bottom:0;">${tabsHtml}</div>
     <div style="display:flex;align-items:center;gap:10px;">
       <div class="sub">${subtitle||""}</div>
