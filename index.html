@@ -189,7 +189,7 @@ async function fetchData(){
     const mSet=new Map();rawData.forEach(r=>{if(r.month&&r.monthSort)mSet.set(r.month,r.monthSort);});
     allMonths=[...mSet.entries()].sort((a,b)=>a[1]-b[1]).map(e=>({label:e[0],sort:e[1]}));
     WHO_ORDER=[...new Set(rawData.map(r=>r.who))].filter(Boolean);
-    const normCost=r=>{const pm=parseMonth(r['年月']);return{...r,monthLabel:pm?pm.label:'',monthSort:pm?pm.sort:0,amt:parseFloat(r['金額（税込）'])||0};};
+    const normCost=r=>{const pm=parseMonth(r['年月']);return{...r,monthLabel:pm?pm.label:'',monthSort:pm?pm.sort:0,amt:(parseFloat(r['金額（税別）'])||0)/10000};};
     costData=(json.costData||[]).map(normCost).filter(r=>r.monthLabel);
     corpoCostData=(json.corpoCostData||[]).map(normCost).filter(r=>r.monthLabel);
     render();
@@ -619,7 +619,7 @@ function renderCostPage(data, pageId, pageTitle){
     <div class="sticky-header">
       ${pageTabsHtml(`${filtered.length.toLocaleString()}件 ｜ 最終更新: ${updStr}`)}
       <div class="kpi-grid">
-        <div class="kpi"><div class="kpi-label">合計金額（税込）</div><div class="kpi-val">${fmtAmt(total)}</div><div class="kpi-sub">${filtered.length}件</div></div>
+        <div class="kpi"><div class="kpi-label">合計金額（税別）</div><div class="kpi-val">${fmtAmt(total)}</div><div class="kpi-sub">${filtered.length}件</div></div>
       </div>
       <div class="controls-row" style="margin-bottom:0;">
         <div class="stack-row" style="display:flex;margin-bottom:0;align-items:center;gap:6px;">
