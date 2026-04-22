@@ -150,6 +150,8 @@ const GOOGLE_CLIENT_ID="706617013222-al13t67u32mcd2ao6dsn5hc97ldo4n11.apps.googl
 let allowedTabs=[], currentUser=null;
 let rawData=[], filteredData=[], allMonths=[], WHO_ORDER=[];
 function whoSort(vals){return[...vals].sort((a,b)=>{const ia=WHO_ORDER.indexOf(a),ib=WHO_ORDER.indexOf(b);if(ia===-1&&ib===-1)return a.localeCompare(b,"ja");if(ia===-1)return 1;if(ib===-1)return -1;return ia-ib;});}
+const TM_ORDER=["SNS_インスタ運用TM","SNS_動画TM","SNS_LINETM","AITM","広告TM","WebクリエイティブTM","WebサポートTM","開発TM","AIOTM","フロント"];
+function tmSort(vals){return[...vals].sort((a,b)=>{const ia=TM_ORDER.indexOf(a),ib=TM_ORDER.indexOf(b);if(ia===-1&&ib===-1)return a.localeCompare(b,"ja");if(ia===-1)return 1;if(ib===-1)return -1;return ia-ib;});}
 let companyMap={};
 let meta={updated:"",count:0};
 let charts={};
@@ -292,7 +294,7 @@ function render(){
   if(F.page==='corpo'){renderCostPage(corpoCostData,'corpo','コーポレートコスト');return;}
   if(F.salesTab==='who'){renderWhoPage();return;}
 
-  const cats=unique(rawData.map(r=>r.cat)),whos=whoSort(unique(rawData.map(r=>r.who))),divs=unique(rawData.map(r=>r.div)),kis=unique(rawData.map(r=>r.ki)),sts=unique(rawData.map(r=>r.st)),tms=unique(rawData.map(r=>r.tm));
+  const cats=unique(rawData.map(r=>r.cat)),whos=whoSort(unique(rawData.map(r=>r.who))),divs=unique(rawData.map(r=>r.div)),kis=unique(rawData.map(r=>r.ki)),sts=unique(rawData.map(r=>r.st)),tms=tmSort(unique(rawData.map(r=>r.tm)));
   const clientSts=unique(rawData.map(r=>r.clientSt)),clientPrefs=geoSort(unique(rawData.map(r=>r.clientPref)).filter(Boolean)),clientAreas=geoSort(unique(rawData.flatMap(r=>(r.clientArea||"").split(/[；;]/).map(s=>s.trim()).filter(Boolean)))),clientSegs=segSortCl(unique(rawData.map(r=>r.clientSeg)).filter(Boolean));
   const whoCount={};rawData.forEach(r=>{whoCount[r.who]=(whoCount[r.who]||0)+1;});
   const whoBase=F.who!=="all"?rawData.filter(r=>r.who===F.who):rawData;
@@ -344,7 +346,7 @@ function renderWhoPage(){
   const cats=unique(rawData.map(r=>r.cat));
   const sts=unique(rawData.map(r=>r.st));
   const kis=unique(rawData.map(r=>r.ki));
-  const tms=unique(rawData.map(r=>r.tm));
+  const tms=tmSort(unique(rawData.map(r=>r.tm)));
   const divs=unique(rawData.map(r=>r.div));
   const whoAmts=unique(data.map(r=>r.who)).map(w=>({w,s:sum(data.filter(r=>r.who===w),"amt")}));
   const top=whoAmts.slice().sort((a,b)=>b.s-a.s)[0];
@@ -656,8 +658,7 @@ function renderCostPage(data, pageId, pageTitle){
       months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v),'amt')*100)/100;rowTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
       html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
       if(isDiv){
-        const tms=unique(filtered.filter(r=>r['Div名']===v).map(r=>r['TM'])).filter(Boolean);
-        tms.sort((a,b)=>sum(filtered.filter(r=>r['Div名']===v&&r['TM']===b),'amt')-sum(filtered.filter(r=>r['Div名']===v&&r['TM']===a),'amt'));
+        const tms=tmSort(unique(filtered.filter(r=>r['Div名']===v).map(r=>r['TM'])).filter(Boolean));
         tms.forEach(tm=>{
           let pTotal=0;
           html+=`<tr class="prod-row prod-row-${i}" style="display:none;"><td title="${tm}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${tm}</td>`;
@@ -1202,7 +1203,7 @@ function updateSidebar(){
   const cats=unique(rawData.map(r=>r.cat));
   const sts=unique(rawData.map(r=>r.st));
   const kis=unique(rawData.map(r=>r.ki));
-  const tms=unique(rawData.map(r=>r.tm));
+  const tms=tmSort(unique(rawData.map(r=>r.tm)));
   const divs=unique(rawData.map(r=>r.div));
   const whos=whoSort(unique(rawData.map(r=>r.who)));
   const whoCount={};rawData.forEach(r=>{whoCount[r.who]=(whoCount[r.who]||0)+1;});
@@ -1255,7 +1256,7 @@ function updateSidebar(){
     const allM=[...new Map(pageData.map(r=>[r.monthLabel,r.monthSort])).entries()].sort((a,b)=>a[1]-b[1]).map(e=>({label:e[0],sort:e[1]}));
     const mSel=(key,label)=>{let h=`<select class="sel" onchange="setFilter('${key}',this.value)"><option value="all">${label}</option>`;allM.forEach(m=>{h+=`<option value="${m.label}" ${F[key]===m.label?'selected':''}>${m.label}</option>`;});return h+`</select>`;};
     const divs=unique(pageData.map(r=>r['Div名'])).filter(Boolean);
-    const tms=unique(pageData.map(r=>r['TM'])).filter(Boolean);
+    const tms=tmSort(unique(pageData.map(r=>r['TM'])).filter(Boolean));
     const costChip=(key,vals)=>{let h=`<button class="chip chip-all ${F[key]==='all'?'active':''}" onclick="setFilter('${key}','all')">すべて</button>`;vals.forEach(v=>{h+=`<button class="chip ${F[key]===v?'active':''}" onclick="setFilter('${key}','${esc(v)}')">${v}</button>`;});return h;};
     html+=`
       ${sl('計上月',F[mFromKey]!=='all'||F[mToKey]!=='all',`setFilter('${mFromKey}','all');setFilter('${mToKey}','all')`)}
