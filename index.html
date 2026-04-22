@@ -167,8 +167,8 @@ function groupBy(arr,key){return arr.reduce((g,r)=>{const k=r[key]||"";(g[k]=g[k
 function esc(s){return s.replace(/'/g,"\\'").replace(/"/g,"&quot;");}
 function toggleMulti(key,val){const arr=F[key];const idx=arr.indexOf(val);if(idx===-1)arr.push(val);else arr.splice(idx,1);render();}
 function clearMulti(key){F[key]=[];render();}
-const SEG_ORDER_CL=["注文：超ヘビー（200棟以上）","注文：ヘビー（50棟以上）","注文：M1（26～50棟）","注文：M2（10～25棟）","注文：ライト（10棟以下）","分譲：超ヘビー（200棟以上）","分譲：ヘビー（50棟以上）","分譲：M1（26～50棟）","分譲：M2（10～25棟）","分譲：ライト（10棟以下）","FC","HM","その他"];
-function segSortCl(vals){return[...vals].sort((a,b)=>{let ia=SEG_ORDER_CL.indexOf(a);let ib=SEG_ORDER_CL.indexOf(b);if(ia===-1)ia=SEG_ORDER_CL.length;if(ib===-1)ib=SEG_ORDER_CL.length;if(ia===ib)return a.localeCompare(b,"ja");return ia-ib;});}
+const SEG_ORDER_CL=["注文：超ヘビー","注文：ヘビー","注文：M1","注文：M2","注文：ライト","分譲：超ヘビー","分譲：ヘビー","分譲：M1","分譲：M2","分譲：ライト","FC","HM","その他"];
+function segSortCl(vals){return[...vals].sort((a,b)=>{const ia=SEG_ORDER_CL.findIndex(k=>a.includes(k)||k.includes(a));const ib=SEG_ORDER_CL.findIndex(k=>b.includes(k)||k.includes(b));if(ia===-1&&ib===-1)return a.localeCompare(b,"ja");if(ia===-1)return 1;if(ib===-1)return -1;return ia-ib;});}
 const PREF_ORDER=["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
 function geoSort(vals){return[...vals].sort((a,b)=>{const ia=PREF_ORDER.findIndex(p=>a.includes(p));const ib=PREF_ORDER.findIndex(p=>b.includes(p));if(ia===-1&&ib===-1)return a.localeCompare(b,"ja");if(ia===-1)return 1;if(ib===-1)return -1;return ia-ib;});}
 
@@ -818,8 +818,8 @@ function updateClTantoCharts(companies,salesData,tantosSorted,sts){
     tJM.innerHTML=h;
   }
   // Chart5: 担当者別・棟数セグメント（会社数）
-  const SEG_ORDER=["注文：超ヘビー（200棟以上）","注文：ヘビー（50棟以上）","注文：M1（26～50棟）","注文：M2（10～25棟）","注文：ライト（10棟以下）","分譲：超ヘビー（200棟以上）","分譲：ヘビー（50棟以上）","分譲：M1（26～50棟）","分譲：M2（10～25棟）","分譲：ライト（10棟以下）","FC","HM","その他"];
-  function segSort(vals){return[...vals].sort((a,b)=>{let ia=SEG_ORDER.indexOf(a);let ib=SEG_ORDER.indexOf(b);if(ia===-1)ia=SEG_ORDER.length;if(ib===-1)ib=SEG_ORDER.length;if(ia===ib)return a.localeCompare(b,"ja");return ia-ib;});}
+  const SEG_ORDER=["注文：超ヘビー","注文：ヘビー","注文：M1","注文：M2","注文：ライト","分譲：超ヘビー","分譲：ヘビー","分譲：M1","分譲：M2","分譲：ライト","FC","HM","その他"];
+  function segSort(vals){return[...vals].sort((a,b)=>{const ia=SEG_ORDER.findIndex(k=>a.includes(k)||k.includes(a));const ib=SEG_ORDER.findIndex(k=>b.includes(k)||k.includes(b));if(ia===-1&&ib===-1)return a.localeCompare(b,"ja");if(ia===-1)return 1;if(ib===-1)return -1;return ia-ib;});}
   const segs5=unique(companies.map(c=>c["棟数セグメント"]||"")).filter(Boolean);
   const orderedSegs5=segSort(segs5);
   const c5=document.getElementById("clChart5");
