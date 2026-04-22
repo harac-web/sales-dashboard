@@ -155,7 +155,7 @@ let meta={updated:"",count:0};
 let charts={};
 let clCompanies=[];
 let clTantoSalesData=[];
-let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",tableView:"sales",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:[],showClientPref:false,showClientArea:false,showClPref:false,showClArea:false,clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
+let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",tableView:"sales",seg5St:"all",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:[],showClientPref:false,showClientArea:false,showClPref:false,showClArea:false,clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
 
 function parseMonth(v){
   if(!v)return null;const s=String(v);let y,m;
@@ -699,7 +699,7 @@ function renderClPage(){
   const tantoContent=`
     <div class="chart-wrap" style="margin-bottom:18px;"><div class="chart-title">担当者別・Jヨミ社数 月推移</div><div id="clChartJMonthTable" style="overflow-x:auto;"></div></div>
     <div class="chart-wrap" style="margin-bottom:18px;"><div class="chart-title">担当者別・取引状況（会社数）</div><canvas id="clChart1" style="min-height:300px;max-height:380px;"></canvas><div id="clChart1Table" style="margin-top:12px;overflow-x:auto;"></div></div>
-    <div class="chart-wrap"><div class="chart-title">担当者別・棟数セグメント（会社数）</div><canvas id="clChart5" style="min-height:300px;max-height:380px;"></canvas><div id="clChart5Table" style="margin-top:12px;overflow-x:auto;"></div></div>`;
+    <div class="chart-wrap"><div class="chart-header"><div class="chart-title">担当者別・棟数セグメント（会社数）</div><span style="display:inline-flex;align-items:center;gap:4px;"><span class="stack-label">取引状況:</span><button class="chip ${F.seg5St==='all'?'active':''}" style="padding:3px 9px;font-size:10px;" onclick="F.seg5St='all';render();">すべて</button><button class="chip ${F.seg5St==='取引中'?'active':''}" style="padding:3px 9px;font-size:10px;" onclick="F.seg5St='取引中';render();">取引中</button><button class="chip ${F.seg5St==='追客中'?'active':''}" style="padding:3px 9px;font-size:10px;" onclick="F.seg5St='追客中';render();">追客中</button><button class="chip ${F.seg5St==='一時中止中'?'active':''}" style="padding:3px 9px;font-size:10px;" onclick="F.seg5St='一時中止中';render();">一時中止中</button><button class="chip ${F.seg5St==='オチ'?'active':''}" style="padding:3px 9px;font-size:10px;" onclick="F.seg5St='オチ';render();">オチ</button></span></div><canvas id="clChart5" style="min-height:300px;max-height:380px;"></canvas><div id="clChart5Table" style="margin-top:12px;overflow-x:auto;"></div></div>`;
 
   document.getElementById("app").innerHTML=`
     <div class="sticky-header">
@@ -824,26 +824,29 @@ function updateClTantoCharts(companies,salesData,tantosSorted,sts){
   // Chart5: 担当者別・棟数セグメント（会社数）
   const SEG_ORDER=["注文：超ヘビー","注文：ヘビー","注文：M1","注文：M2","注文：ライト","分譲：超ヘビー","分譲：ヘビー","分譲：M1","分譲：M2","分譲：ライト","FC","HM","その他"];
   function segSort(vals){return[...vals].sort((a,b)=>{const ia=SEG_ORDER.findIndex(k=>a.includes(k)||k.includes(a));const ib=SEG_ORDER.findIndex(k=>b.includes(k)||k.includes(b));if(ia===-1&&ib===-1)return a.localeCompare(b,"ja");if(ia===-1)return 1;if(ib===-1)return -1;return ia-ib;});}
-  const segs5=unique(companies.map(c=>c["棟数セグメント"]||"")).filter(Boolean);
+  const seg5Companies=F.seg5St==="all"?companies:companies.filter(c=>(c["取引状況"]||"")===F.seg5St);
+  const segs5=unique(seg5Companies.map(c=>c["棟数セグメント"]||"")).filter(Boolean);
   const orderedSegs5=segSort(segs5);
   const c5=document.getElementById("clChart5");
   if(charts.clChart5)charts.clChart5.destroy();
   if(c5){
-    charts.clChart5=new Chart(c5,{type:"bar",data:{labels:tantosSorted,datasets:orderedSegs5.map((s,i)=>({label:s,backgroundColor:COLORS[i%COLORS.length],data:tantosSorted.map(t=>companies.filter(c=>c["担当者"]===t&&c["棟数セグメント"]===s).length)}))},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{color:"#94a3b8",font:{size:9}}},y:{stacked:true,ticks:{color:"#94a3b8",font:{size:9}}}},plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{return`合計: ${items.reduce((s,i)=>s+i.raw,0)}社`;}}}}}});
+    charts.clChart5=new Chart(c5,{type:"bar",data:{labels:tantosSorted,datasets:orderedSegs5.map((s,i)=>({label:s,backgroundColor:COLORS[i%COLORS.length],data:tantosSorted.map(t=>seg5Companies.filter(c=>c["担当者"]===t&&c["棟数セグメント"]===s).length)}))},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{color:"#94a3b8",font:{size:9}}},y:{stacked:true,ticks:{color:"#94a3b8",font:{size:9}}}},plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{return`合計: ${items.reduce((s,i)=>s+i.raw,0)}社`;}}}}}});
     const t5=document.getElementById("clChart5Table");
     if(t5){
+      const stLabel=F.seg5St==="all"?"":` (${F.seg5St})`;
       let h=`<table class="data-table" style="font-size:10px;"><thead><tr><th style="text-align:left;">担当者</th>`;
       orderedSegs5.forEach(s=>{h+=`<th>${s}</th>`;});
       h+=`<th>合計</th></tr></thead><tbody>`;
       tantosSorted.forEach(t=>{
-        const tc=companies.filter(c=>c["担当者"]===t);
+        const tc=seg5Companies.filter(c=>c["担当者"]===t);
+        if(tc.length===0)return;
         h+=`<tr><td>${t}</td>`;
-        orderedSegs5.forEach(s=>{const n=tc.filter(c=>c["棟数セグメント"]===s).length;h+=n>0?`<td class="cell-clickable" onclick="openCompanyListDetail('${esc(t)} / ${esc(s)}','${n}社',clCompanies.filter(c=>(c['担当者']||'')==='${esc(t)}'&&(c['棟数セグメント']||'')==='${esc(s)}'))">${n}</td>`:`<td class="zero">-</td>`;});
+        orderedSegs5.forEach(s=>{const n=tc.filter(c=>c["棟数セグメント"]===s).length;const stFilter=F.seg5St==="all"?"":`&&(c['取引状況']||'')==='${esc(F.seg5St)}'`;h+=n>0?`<td class="cell-clickable" onclick="openCompanyListDetail('${esc(t)} / ${esc(s)}${stLabel}','${n}社',clCompanies.filter(c=>(c['担当者']||'')==='${esc(t)}'&&(c['棟数セグメント']||'')==='${esc(s)}'${stFilter}))">${n}</td>`:`<td class="zero">-</td>`;});
         h+=`<td>${tc.length}</td></tr>`;
       });
       h+=`<tr class="total-row"><td>合計</td>`;
-      orderedSegs5.forEach(s=>{h+=`<td>${companies.filter(c=>c["棟数セグメント"]===s).length}</td>`;});
-      h+=`<td>${companies.length}</td></tr></tbody></table>`;
+      orderedSegs5.forEach(s=>{h+=`<td>${seg5Companies.filter(c=>c["棟数セグメント"]===s).length}</td>`;});
+      h+=`<td>${seg5Companies.length}</td></tr></tbody></table>`;
       t5.innerHTML=h;
     }
   }
