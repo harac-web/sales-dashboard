@@ -153,6 +153,8 @@ function whoSort(vals){return[...vals].sort((a,b)=>{const ia=WHO_ORDER.indexOf(a
 let companyMap={};
 let meta={updated:"",count:0};
 let charts={};
+let clCompanies=[];
+let clTantoSalesData=[];
 let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",tableView:"sales",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:[],showClientPref:false,showClientArea:false,showClPref:false,showClArea:false,clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
 
 function parseMonth(v){
@@ -454,7 +456,7 @@ function updateWhoTable(data, whoTotals){
     html+=`<tr><td>${w}</td>`;
     cats.forEach(c=>{
       const v=Math.round(sum(wData.filter(r=>r.cat===c),"amt")*100)/100;
-      html+=`<td class="${v===0?'zero':''}">${v>0?v.toFixed(1):'-'}</td>`;
+      html+=v>0?`<td class="cell-clickable" onclick="openWhoCatDetail('${esc(w)}','${esc(c)}')">${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;
     });
     html+=`<td>${total.toFixed(1)}</td></tr>`;
   });
@@ -603,6 +605,7 @@ function renderClPage(){
     if(r.monthSort<clMFrom||r.monthSort>clMTo)return false;
     return true;
   });
+  clCompanies=companies;
   const tantoMFrom=F.tantoMonthFrom==="all"?0:allMonths.find(m=>m.label===F.tantoMonthFrom)?.sort||0;
   const tantoMTo=F.tantoMonthTo==="all"?99999:allMonths.find(m=>m.label===F.tantoMonthTo)?.sort||99999;
   const tantoSalesData=rawData.filter(r=>{
@@ -610,6 +613,7 @@ function renderClPage(){
     if(r.monthSort<tantoMFrom||r.monthSort>tantoMTo)return false;
     return true;
   });
+  clTantoSalesData=tantoSalesData;
   const totalSales=sum(salesData,"amt");
   const updStr=meta.updated?new Date(meta.updated).toLocaleString("ja-JP"):"-";
 
@@ -739,7 +743,7 @@ function updateClCharts(companies,salesData,tantoSalesData){
     const t2=document.getElementById("clChart2Table");
     if(t2){
       let h=`<table class="data-table" style="font-size:10px;"><thead><tr><th style="text-align:left;">セグメント</th><th>会社数</th><th>割合</th></tr></thead><tbody>`;
-      segCounts.forEach(x=>{h+=`<tr><td>${x.seg}</td><td>${x.n}</td><td>${total2>0?Math.round(x.n/total2*100):0}%</td></tr>`;});
+      segCounts.forEach(x=>{h+=`<tr><td>${x.seg}</td><td class="cell-clickable" onclick="openCompanyListDetail('取引中 / ${esc(x.seg)}','${x.n}社',clCompanies.filter(c=>(c['取引状況']||'')==='取引中'&&(c['棟数セグメント']||'')==='${esc(x.seg)}'))">${x.n}</td><td>${total2>0?Math.round(x.n/total2*100):0}%</td></tr>`;});
       h+=`<tr class="total-row"><td>合計（取引中）</td><td>${total2}</td><td>100%</td></tr></tbody></table>`;
       t2.innerHTML=h;
     }
@@ -811,7 +815,7 @@ function updateClTantoCharts(companies,salesData,tantosSorted,sts){
       const rowVals=jMonths.map(m=>unique(salesData.filter(r=>r.who===t&&r.st==="J"&&r.month===m).map(r=>r.client)).length);
       if(rowVals.reduce((a,b)=>a+b,0)===0)return;
       h+=`<tr><td>${t}</td>`;
-      rowVals.forEach(v=>{h+=`<td class="${v===0?'zero':''}">${v>0?v:'-'}</td>`;});
+      rowVals.forEach((v,mi)=>{h+=v>0?`<td class="cell-clickable" onclick="openClJMonthDetail('${esc(t)}','${esc(jMonths[mi])}')">${v}</td>`:`<td class="zero">-</td>`;});
       h+=`</tr>`;
     });
     h+=`</tbody></table>`;
@@ -834,7 +838,7 @@ function updateClTantoCharts(companies,salesData,tantosSorted,sts){
       tantosSorted.forEach(t=>{
         const tc=companies.filter(c=>c["担当者"]===t);
         h+=`<tr><td>${t}</td>`;
-        orderedSegs5.forEach(s=>{const n=tc.filter(c=>c["棟数セグメント"]===s).length;h+=`<td class="${n===0?'zero':''}">${n>0?n:'-'}</td>`;});
+        orderedSegs5.forEach(s=>{const n=tc.filter(c=>c["棟数セグメント"]===s).length;h+=n>0?`<td class="cell-clickable" onclick="openCompanyListDetail('${esc(t)} / ${esc(s)}','${n}社',clCompanies.filter(c=>(c['担当者']||'')==='${esc(t)}'&&(c['棟数セグメント']||'')==='${esc(s)}'))">${n}</td>`:`<td class="zero">-</td>`;});
         h+=`<td>${tc.length}</td></tr>`;
       });
       h+=`<tr class="total-row"><td>合計</td>`;
@@ -856,7 +860,7 @@ function updateClTantoCharts(companies,salesData,tantosSorted,sts){
       tantosSorted.forEach(t=>{
         const tc=companies.filter(c=>c["担当者"]===t);
         h+=`<tr><td>${t}</td>`;
-        sts.forEach(s=>{const n=tc.filter(c=>c["取引状況"]===s).length;h+=`<td class="${n===0?'zero':''}">${n>0?n:'-'}</td>`;});
+        sts.forEach(s=>{const n=tc.filter(c=>c["取引状況"]===s).length;h+=n>0?`<td class="cell-clickable" onclick="openCompanyListDetail('${esc(t)} / ${esc(s)}','${n}社',clCompanies.filter(c=>(c['担当者']||'')==='${esc(t)}'&&(c['取引状況']||'')==='${esc(s)}'))">${n}</td>`:`<td class="zero">-</td>`;});
         h+=`<td>${tc.length}</td></tr>`;
       });
       h+=`<tr class="total-row"><td>合計</td>`;
@@ -1263,6 +1267,45 @@ function openCellDetail(month, sfVal, sf){
       <td style="text-align:left;">${r.month}</td>
     </tr>`;
   });
+  html+=`</tbody></table>`;
+  document.getElementById("modal-body").innerHTML=html;
+  document.getElementById("modal-footer").textContent=`合計金額: ${total.toFixed(1)} 万円`;
+  document.getElementById("cell-modal").style.display="flex";
+}
+function openWhoCatDetail(who,cat){
+  const items=filteredData.filter(r=>r.who===who&&r.cat===cat);
+  if(items.length===0)return;
+  const total=Math.round(items.reduce((s,r)=>s+r.amt,0)*100)/100;
+  document.getElementById("modal-title").textContent=`${who} / ${cat}`;
+  document.getElementById("modal-sub").textContent=`${items.length}件`;
+  const sorted=[...items].sort((a,b)=>b.amt-a.amt);
+  let html=`<table class="data-table"><thead><tr><th style="text-align:left;min-width:140px;">取引先</th><th style="text-align:left;">商品</th><th>金額(万円)</th><th style="text-align:left;">ステータス</th><th style="text-align:left;">月</th></tr></thead><tbody>`;
+  sorted.forEach(r=>{const sc=r.st==='受注'?'var(--green)':r.st==='失注'?'var(--red)':'var(--muted)';html+=`<tr><td style="text-align:left;max-width:180px;overflow:hidden;text-overflow:ellipsis;">${r.client}</td><td style="text-align:left;">${r.prod}</td><td>${r.amt.toFixed(1)}</td><td style="text-align:left;color:${sc};">${r.st}</td><td style="text-align:left;">${r.month}</td></tr>`;});
+  html+=`</tbody></table>`;
+  document.getElementById("modal-body").innerHTML=html;
+  document.getElementById("modal-footer").textContent=`合計金額: ${total.toFixed(1)} 万円`;
+  document.getElementById("cell-modal").style.display="flex";
+}
+function openCompanyListDetail(title,subtitle,cos){
+  if(!cos||cos.length===0)return;
+  document.getElementById("modal-title").textContent=title;
+  document.getElementById("modal-sub").textContent=subtitle;
+  let html=`<table class="data-table"><thead><tr><th style="text-align:left;min-width:140px;">会社名</th><th style="text-align:left;">担当者</th><th style="text-align:left;">棟数セグメント</th><th style="text-align:left;">取引状況</th><th style="text-align:left;">都道府県</th></tr></thead><tbody>`;
+  cos.forEach(c=>{const sc=(c["取引状況"]==="取引中")?'var(--green)':(c["取引状況"]==="オチ")?'var(--red)':'var(--muted)';html+=`<tr><td style="text-align:left;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${c["会社名"]||''}</td><td style="text-align:left;">${c["担当者"]||''}</td><td style="text-align:left;">${c["棟数セグメント"]||''}</td><td style="text-align:left;color:${sc};">${c["取引状況"]||''}</td><td style="text-align:left;">${c["都道府県／地域"]||''}</td></tr>`;});
+  html+=`</tbody></table>`;
+  document.getElementById("modal-body").innerHTML=html;
+  document.getElementById("modal-footer").textContent=`${cos.length}社`;
+  document.getElementById("cell-modal").style.display="flex";
+}
+function openClJMonthDetail(tanto,month){
+  const items=clTantoSalesData.filter(r=>r.who===tanto&&r.month===month&&r.st==="J");
+  if(items.length===0)return;
+  const total=Math.round(items.reduce((s,r)=>s+r.amt,0)*100)/100;
+  document.getElementById("modal-title").textContent=`${tanto} / ${month} Jヨミ`;
+  document.getElementById("modal-sub").textContent=`${unique(items.map(r=>r.client)).length}社`;
+  const sorted=[...items].sort((a,b)=>b.amt-a.amt);
+  let html=`<table class="data-table"><thead><tr><th style="text-align:left;min-width:140px;">取引先</th><th style="text-align:left;">商品</th><th>金額(万円)</th></tr></thead><tbody>`;
+  sorted.forEach(r=>{html+=`<tr><td style="text-align:left;max-width:180px;overflow:hidden;text-overflow:ellipsis;">${r.client}</td><td style="text-align:left;">${r.prod}</td><td>${r.amt.toFixed(1)}</td></tr>`;});
   html+=`</tbody></table>`;
   document.getElementById("modal-body").innerHTML=html;
   document.getElementById("modal-footer").textContent=`合計金額: ${total.toFixed(1)} 万円`;
