@@ -955,7 +955,7 @@ function updateTable(){
     return b.s-a.s;
   });
 
-  const toggleHtml=sf==='cat'?`<span style="display:inline-flex;gap:4px;margin-left:10px;vertical-align:middle;"><button class="chip ${F.tableView==='sales'?'active':''}" style="padding:3px 9px;font-size:10px;" onclick="F.tableView='sales';updateTable();">売上（万円）</button><button class="chip ${F.tableView==='count'?'active':''}" style="padding:3px 9px;font-size:10px;" onclick="F.tableView='count';updateTable();">件数</button></span>`:'';
+  const toggleHtml=sf==='cat'?`<span style="display:inline-flex;align-items:center;gap:4px;margin-left:20px;vertical-align:middle;"><span class="stack-label">表示形式:</span><button class="chip ${F.tableView==='sales'?'active':''}" style="padding:3px 9px;font-size:10px;" onclick="F.tableView='sales';updateTable();">売上（万円）</button><button class="chip ${F.tableView==='count'?'active':''}" style="padding:3px 9px;font-size:10px;" onclick="F.tableView='count';updateTable();">件数</button><button class="chip ${F.tableView==='both'?'active':''}" style="padding:3px 9px;font-size:10px;" onclick="F.tableView='both';updateTable();">売上＆件数</button></span>`:'';
   let html=`<h2 style="display:flex;align-items:center;">月別 ${stackLabels[sf]||sf}${toggleHtml}</h2><table class="data-table"><thead><tr><th>${stackLabels[sf]||sf}</th>`;
   months.forEach(m=>{html+=`<th>${m}</th>`;});
   html+=`<th>合計</th></tr></thead><tbody>`;
@@ -1048,8 +1048,42 @@ function updateTable(){
   html2+=`<td>${cntGrandTotal>0?cntGrandTotal:'-'}</td></tr>`;
   html2+=`</tbody></table>`;
 
+  // 売上＆件数 結合テーブル
+  let html3=`<h2 style="display:flex;align-items:center;">月別 カテゴリ${toggleHtml}</h2><table class="data-table"><thead><tr><th>カテゴリ/商品</th><th style="min-width:36px;color:var(--dim);font-weight:600;font-size:10px;"></th>`;
+  months.forEach(m=>{html3+=`<th>${m}</th>`;});
+  html3+=`<th>合計</th></tr></thead><tbody>`;
+  let grandTotal3=0,cntGrand3=0;
+  vs.forEach(({v:catName,div},i)=>{
+    const bg=divColorMap[div]||'rgba(99,102,241,.1)';
+    const catData=filteredData.filter(r=>r.cat===catName);
+    let catTotal=0;
+    const catMonthlySales=months.map(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r.cat===catName),"amt")*100)/100;catTotal+=val;return val;});
+    grandTotal3+=catTotal;
+    html3+=`<tr id="cat-row-${i}" class="cat-row" onclick="toggleProdRows(${i})" style="background:${bg}"><td title="${catName}"><span class="expand-icon">▶</span>${catName}</td><td style="color:var(--dim);font-size:10px;">売上</td>`;
+    catMonthlySales.forEach((val,mi)=>{html3+=val>0?`<td class="cell-clickable" onclick="openCellDetail('${months[mi]}','${esc(catName)}','cat')">${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+    html3+=`<td>${catTotal.toFixed(1)}</td></tr>`;
+    const prods=unique(catData.map(r=>r.prod)).filter(Boolean).sort((a,b)=>sum(catData.filter(r=>r.prod===b),"amt")-sum(catData.filter(r=>r.prod===a),"amt"));
+    prods.forEach(p=>{
+      let pSalesTotal=0,pCntTotal=0;
+      const salesCells=months.map(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r.cat===catName&&r.prod===p),"amt")*100)/100;pSalesTotal+=val;return val;});
+      const cntCells=months.map(m=>{const cnt=snap.filter(r=>r.month===m&&r.prod===p).length;pCntTotal+=cnt;return cnt;});
+      cntGrand3+=pCntTotal;
+      html3+=`<tr class="prod-row prod-row-${i}" style="display:none;background:${bg}"><td title="${p}" style="padding-left:20px;">${p}</td><td style="color:var(--dim);font-size:10px;">売上</td>`;
+      salesCells.forEach((val,mi)=>{html3+=val>0?`<td class="cell-clickable" onclick="openCellDetail('${months[mi]}','${esc(p)}','prod')">${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+      html3+=`<td>${pSalesTotal.toFixed(1)}</td></tr>`;
+      html3+=`<tr class="prod-row prod-row-${i}" style="display:none;background:${bg}"><td></td><td style="color:var(--dim);font-size:10px;">件数</td>`;
+      cntCells.forEach((cnt,mi)=>{html3+=cnt>0?`<td class="cell-clickable" onclick="openCellDetail('${months[mi]}','${esc(p)}','prod')">${cnt}</td>`:`<td class="zero">-</td>`;});
+      html3+=`<td>${pCntTotal>0?pCntTotal:'-'}</td></tr>`;
+    });
+  });
+  html3+=`<tr class="total-row"><td>合計</td><td style="color:var(--dim);font-size:10px;">売上</td>`;
+  months.forEach(m=>{const v=Math.round(sum(byMonth[m]||[],"amt")*100)/100;html3+=`<td>${v.toFixed(1)}</td>`;});
+  html3+=`<td>${grandTotal3.toFixed(1)}</td></tr>`;
+  html3+=`</tbody></table>`;
+
   if(sf==='cat'){
-    el.innerHTML=`<div class="card">${F.tableView==='count'?html2:html}</div>`;
+    const view=F.tableView;
+    el.innerHTML=`<div class="card">${view==='count'?html2:view==='both'?html3:html}</div>`;
   }else{
     el.innerHTML=`<div class="card">${html}</div>`;
   }
