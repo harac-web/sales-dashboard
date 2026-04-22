@@ -156,7 +156,7 @@ let charts={};
 let clCompanies=[];
 let clTantoSalesData=[];
 let costData=[], corpoCostData=[];
-let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",tableView:"sales",seg5St:"all",costStack:"div",costMonthFrom:"all",costMonthTo:"all",corpoStack:"div",corpoMonthFrom:"all",corpoMonthTo:"all",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:[],showClientPref:false,showClientArea:false,showClPref:false,showClArea:false,clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
+let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",tableView:"sales",seg5St:"all",costStack:"div",costMonthFrom:"all",costMonthTo:"all",costDiv:"all",costTm:"all",corpoStack:"div",corpoMonthFrom:"all",corpoMonthTo:"all",corpoDiv:"all",corpoTm:"all",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:[],showClientPref:false,showClientArea:false,showClPref:false,showClArea:false,clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
 
 function parseMonth(v){
   if(!v)return null;const s=String(v);let y,m;
@@ -587,6 +587,8 @@ function renderCostPage(data, pageId, pageTitle){
   const stackKey=pageId==='bumon'?'costStack':'corpoStack';
   const mFromKey=pageId==='bumon'?'costMonthFrom':'corpoMonthFrom';
   const mToKey=pageId==='bumon'?'costMonthTo':'corpoMonthTo';
+  const divKey=pageId==='bumon'?'costDiv':'corpoDiv';
+  const tmKey=pageId==='bumon'?'costTm':'corpoTm';
   const sf=F[stackKey];
   const stackFields={div:'Div名',tm:'TM',kubun:'支払い区分',cat:'大分類'};
   const sfField=stackFields[sf]||'Div名';
@@ -594,7 +596,12 @@ function renderCostPage(data, pageId, pageTitle){
   const allM=[...new Map(data.map(r=>[r.monthLabel,r.monthSort])).entries()].sort((a,b)=>a[1]-b[1]).map(e=>({label:e[0],sort:e[1]}));
   const mFrom=F[mFromKey]==='all'?0:(allM.find(m=>m.label===F[mFromKey])?.sort||0);
   const mTo=F[mToKey]==='all'?99999:(allM.find(m=>m.label===F[mToKey])?.sort||99999);
-  const filtered=data.filter(r=>r.monthSort>=mFrom&&r.monthSort<=mTo);
+  const filtered=data.filter(r=>{
+    if(r.monthSort<mFrom||r.monthSort>mTo)return false;
+    if(F[divKey]!=='all'&&(r['Div名']||'')!==F[divKey])return false;
+    if(F[tmKey]!=='all'&&(r['TM']||'')!==F[tmKey])return false;
+    return true;
+  });
 
   const months=[...new Map(filtered.map(r=>[r.monthLabel,r.monthSort])).entries()].sort((a,b)=>a[1]-b[1]).map(e=>e[0]);
   const byMonth=groupBy(filtered,'monthLabel');
@@ -638,11 +645,26 @@ function renderCostPage(data, pageId, pageTitle){
     let html=`<h2>月別 ${slabel} データ（万円）</h2><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>${slabel}</th>`;
     months.forEach(m=>{html+=`<th>${m}</th>`;});
     html+=`<th>合計</th></tr></thead><tbody>`;
-    vs.forEach(({v})=>{
+    const isDiv=sf==='div';
+    vs.forEach(({v},i)=>{
       let rowTotal=0;
-      html+=`<tr><td title="${v}">${v}</td>`;
+      const rowId=isDiv?`id="cat-row-${i}" `:'';
+      const rowClass=isDiv?`class="cat-row" `:'';
+      const onClick=isDiv?`onclick="toggleProdRows(${i})" `:'';
+      const icon=isDiv?`<span class="expand-icon">▶</span>`:'';
+      html+=`<tr ${rowId}${rowClass}${onClick}><td title="${v}" style="color:var(--text);font-weight:700;">${icon}${v}</td>`;
       months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v),'amt')*100)/100;rowTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
       html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
+      if(isDiv){
+        const tms=unique(filtered.filter(r=>r['Div名']===v).map(r=>r['TM'])).filter(Boolean);
+        tms.sort((a,b)=>sum(filtered.filter(r=>r['Div名']===v&&r['TM']===b),'amt')-sum(filtered.filter(r=>r['Div名']===v&&r['TM']===a),'amt'));
+        tms.forEach(tm=>{
+          let pTotal=0;
+          html+=`<tr class="prod-row prod-row-${i}" style="display:none;"><td title="${tm}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${tm}</td>`;
+          months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r['Div名']===v&&r['TM']===tm),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+          html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
+        });
+      }
     });
     let grandTotal=0;
     html+=`<tr class="total-row"><td>合計</td>`;
@@ -1228,12 +1250,19 @@ function updateSidebar(){
     const pageData=F.page==='bumon'?costData:corpoCostData;
     const mFromKey=F.page==='bumon'?'costMonthFrom':'corpoMonthFrom';
     const mToKey=F.page==='bumon'?'costMonthTo':'corpoMonthTo';
+    const divKey=F.page==='bumon'?'costDiv':'corpoDiv';
+    const tmKey=F.page==='bumon'?'costTm':'corpoTm';
     const allM=[...new Map(pageData.map(r=>[r.monthLabel,r.monthSort])).entries()].sort((a,b)=>a[1]-b[1]).map(e=>({label:e[0],sort:e[1]}));
     const mSel=(key,label)=>{let h=`<select class="sel" onchange="setFilter('${key}',this.value)"><option value="all">${label}</option>`;allM.forEach(m=>{h+=`<option value="${m.label}" ${F[key]===m.label?'selected':''}>${m.label}</option>`;});return h+`</select>`;};
+    const divs=unique(pageData.map(r=>r['Div名'])).filter(Boolean);
+    const tms=unique(pageData.map(r=>r['TM'])).filter(Boolean);
+    const costChip=(key,vals)=>{let h=`<button class="chip chip-all ${F[key]==='all'?'active':''}" onclick="setFilter('${key}','all')">すべて</button>`;vals.forEach(v=>{h+=`<button class="chip ${F[key]===v?'active':''}" onclick="setFilter('${key}','${esc(v)}')">${v}</button>`;});return h;};
     html+=`
       ${sl('計上月',F[mFromKey]!=='all'||F[mToKey]!=='all',`setFilter('${mFromKey}','all');setFilter('${mToKey}','all')`)}
       <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:4px;">${mSel(mFromKey,'開始月')}${mSel(mToKey,'終了月')}</div>
-      <button class="btn" style="margin-top:10px;font-size:10px;padding:4px 12px;width:100%;" onclick="setFilter('${mFromKey}','all');setFilter('${mToKey}','all')">リセット</button>`;
+      ${sl('Div名',F[divKey]!=='all',`setFilter('${divKey}','all')`)}${costChip(divKey,divs)}
+      ${sl('TM',F[tmKey]!=='all',`setFilter('${tmKey}','all')`)}${costChip(tmKey,tms)}
+      <button class="btn" style="margin-top:10px;font-size:10px;padding:4px 12px;width:100%;" onclick="setFilter('${mFromKey}','all');setFilter('${mToKey}','all');setFilter('${divKey}','all');setFilter('${tmKey}','all')">リセット</button>`;
   } else if(F.page==='cl'){
     const tantos=unique(rawData.map(r=>r.who)).filter(Boolean).sort();
     const prefs=geoSort(unique(rawData.map(r=>r.clientPref)).filter(Boolean));
