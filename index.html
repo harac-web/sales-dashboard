@@ -962,7 +962,7 @@ function updateTable(){
     return b.s-a.s;
   });
 
-  const toggleHtml=sf==='cat'?`<span style="display:inline-flex;align-items:center;gap:4px;margin-left:20px;vertical-align:middle;"><span class="stack-label">表示形式:</span><button class="chip ${F.tableView==='sales'?'active':''}" style="padding:3px 9px;font-size:10px;" onclick="F.tableView='sales';updateTable();">売上（万円）</button><button class="chip ${F.tableView==='count'?'active':''}" style="padding:3px 9px;font-size:10px;" onclick="F.tableView='count';updateTable();">件数</button><button class="chip ${F.tableView==='both'?'active':''}" style="padding:3px 9px;font-size:10px;" onclick="F.tableView='both';updateTable();">売上＆件数</button></span>`:'';
+  const toggleHtml=sf==='cat'?`<span style="display:inline-flex;align-items:center;gap:5px;margin-left:20px;vertical-align:middle;background:rgba(99,102,241,.08);border:2px solid rgba(99,102,241,.6);border-radius:10px;padding:4px 10px;"><span style="color:#fff;font-size:11px;font-weight:700;white-space:nowrap;">表示形式:</span><button class="chip ${F.tableView==='sales'?'active':''}" style="padding:3px 10px;font-size:11px;" onclick="F.tableView='sales';updateTable();">売上（万円）</button><button class="chip ${F.tableView==='count'?'active':''}" style="padding:3px 10px;font-size:11px;" onclick="F.tableView='count';updateTable();">件数</button><button class="chip ${F.tableView==='both'?'active':''}" style="padding:3px 10px;font-size:11px;" onclick="F.tableView='both';updateTable();">売上＆件数</button></span>`:'';
   let html=`<h2 style="display:flex;align-items:center;">月別 ${stackLabels[sf]||sf}${toggleHtml}</h2><table class="data-table"><thead><tr><th>${stackLabels[sf]||sf}</th>`;
   months.forEach(m=>{html+=`<th>${m}</th>`;});
   html+=`<th>合計</th></tr></thead><tbody>`;
