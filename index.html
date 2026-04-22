@@ -972,7 +972,8 @@ function updateTable(){
     const rowClass=isCat?`class="cat-row" `:'';
     const onClick=isCat?`onclick="toggleProdRows(${i})" `:'';
     const icon=isCat?`<span class="expand-icon">▶</span>`:'';
-    html+=`<tr ${rowId}${rowClass}${onClick}${bgStyle}><td title="${v}">${icon}${label}</td>`;
+    const catTdStyle=isCat?`style="color:var(--text);font-weight:700;"`:'';
+    html+=`<tr ${rowId}${rowClass}${onClick}${bgStyle}><td title="${v}" ${catTdStyle}>${icon}${label}</td>`;
     months.forEach(m=>{
       const items=(byMonth[m]||[]).filter(r=>r[sf]===v);
       const val=Math.round(sum(items,"amt")*100)/100;
@@ -989,7 +990,7 @@ function updateTable(){
       const prods=unique(catData.map(r=>r.prod)).filter(Boolean).sort((a,b)=>sum(catData.filter(r=>r.prod===b),"amt")-sum(catData.filter(r=>r.prod===a),"amt"));
       prods.forEach(p=>{
         let pTotal=0;
-        html+=`<tr class="prod-row prod-row-${i}" style="display:none;background:${divColorMap[div]}"><td title="${p}">${p}</td>`;
+        html+=`<tr class="prod-row prod-row-${i}" style="display:none;background:${divColorMap[div]}"><td title="${p}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${p}</td>`;
         months.forEach(m=>{
           const val=Math.round(sum((byMonth[m]||[]).filter(r=>r.cat===v&&r.prod===p),"amt")*100)/100;
           pTotal+=val;
@@ -1059,7 +1060,7 @@ function updateTable(){
     let catTotal=0;
     const catMonthlySales=months.map(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r.cat===catName),"amt")*100)/100;catTotal+=val;return val;});
     grandTotal3+=catTotal;
-    html3+=`<tr id="cat-row-${i}" class="cat-row" onclick="toggleProdRows(${i})" style="background:${bg}"><td title="${catName}"><span class="expand-icon">▶</span>${catName}</td><td style="color:var(--dim);font-size:10px;">売上</td>`;
+    html3+=`<tr id="cat-row-${i}" class="cat-row" onclick="toggleProdRows(${i})" style="background:${bg}"><td title="${catName}" style="color:var(--text);font-weight:700;"><span class="expand-icon">▶</span>${catName}</td><td style="color:var(--dim);font-size:10px;">売上</td>`;
     catMonthlySales.forEach((val,mi)=>{html3+=val>0?`<td class="cell-clickable" onclick="openCellDetail('${months[mi]}','${esc(catName)}','cat')">${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
     html3+=`<td>${catTotal.toFixed(1)}</td></tr>`;
     const prods=unique(catData.map(r=>r.prod)).filter(Boolean).sort((a,b)=>sum(catData.filter(r=>r.prod===b),"amt")-sum(catData.filter(r=>r.prod===a),"amt"));
@@ -1068,7 +1069,7 @@ function updateTable(){
       const salesCells=months.map(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r.cat===catName&&r.prod===p),"amt")*100)/100;pSalesTotal+=val;return val;});
       const cntCells=months.map(m=>{const cnt=snap.filter(r=>r.month===m&&r.prod===p).length;pCntTotal+=cnt;return cnt;});
       cntGrand3+=pCntTotal;
-      html3+=`<tr class="prod-row prod-row-${i}" style="display:none;background:${bg}"><td title="${p}" style="padding-left:20px;">${p}</td><td style="color:var(--dim);font-size:10px;">売上</td>`;
+      html3+=`<tr class="prod-row prod-row-${i}" style="display:none;background:${bg}"><td title="${p}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${p}</td><td style="color:var(--dim);font-size:10px;">売上</td>`;
       salesCells.forEach((val,mi)=>{html3+=val>0?`<td class="cell-clickable" onclick="openCellDetail('${months[mi]}','${esc(p)}','prod')">${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
       html3+=`<td>${pSalesTotal.toFixed(1)}</td></tr>`;
       html3+=`<tr class="prod-row prod-row-${i}" style="display:none;background:${bg}"><td></td><td style="color:var(--dim);font-size:10px;">件数</td>`;
