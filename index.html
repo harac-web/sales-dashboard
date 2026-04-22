@@ -153,7 +153,7 @@ function whoSort(vals){return[...vals].sort((a,b)=>{const ia=WHO_ORDER.indexOf(a
 let companyMap={};
 let meta={updated:"",count:0};
 let charts={};
-let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:[],showClientPref:false,showClientArea:false,showClPref:false,showClArea:false,clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
+let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",tableView:"sales",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:[],showClientPref:false,showClientArea:false,showClPref:false,showClArea:false,clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
 
 function parseMonth(v){
   if(!v)return null;const s=String(v);let y,m;
@@ -955,7 +955,8 @@ function updateTable(){
     return b.s-a.s;
   });
 
-  let html=`<h2>月別 ${stackLabels[sf]||sf} データ（万円）</h2><table class="data-table"><thead><tr><th>${stackLabels[sf]||sf}</th>`;
+  const toggleHtml=sf==='cat'?`<span style="display:inline-flex;gap:4px;margin-left:10px;vertical-align:middle;"><button class="chip ${F.tableView==='sales'?'active':''}" style="padding:3px 9px;font-size:10px;" onclick="F.tableView='sales';updateTable();">売上（万円）</button><button class="chip ${F.tableView==='count'?'active':''}" style="padding:3px 9px;font-size:10px;" onclick="F.tableView='count';updateTable();">件数</button></span>`:'';
+  let html=`<h2 style="display:flex;align-items:center;">月別 ${stackLabels[sf]||sf}${toggleHtml}</h2><table class="data-table"><thead><tr><th>${stackLabels[sf]||sf}</th>`;
   months.forEach(m=>{html+=`<th>${m}</th>`;});
   html+=`<th>合計</th></tr></thead><tbody>`;
 
@@ -1009,7 +1010,7 @@ function updateTable(){
 
   // 商品別件数テーブル（フィルター適用後）
   const snap=[...filteredData]; // applyFilters後のスナップショットを明示的に取得
-  let html2=`<h2>月別 商品 件数</h2><table class="data-table"><thead><tr><th>商品名</th>`;
+  let html2=`<h2 style="display:flex;align-items:center;">月別 カテゴリ${toggleHtml}</h2><table class="data-table"><thead><tr><th>商品名</th>`;
   months.forEach(m=>{html2+=`<th>${m}</th>`;});
   html2+=`<th>合計</th></tr></thead><tbody>`;
 
@@ -1047,7 +1048,11 @@ function updateTable(){
   html2+=`<td>${cntGrandTotal>0?cntGrandTotal:'-'}</td></tr>`;
   html2+=`</tbody></table>`;
 
-  el.innerHTML=`<div class="card" style="margin-bottom:16px;">${html}</div>${sf==='cat'?`<div class="card">${html2}</div>`:''}`;
+  if(sf==='cat'){
+    el.innerHTML=`<div class="card">${F.tableView==='count'?html2:html}</div>`;
+  }else{
+    el.innerHTML=`<div class="card">${html}</div>`;
+  }
 }
 
 function updateSidebar(){
