@@ -1047,7 +1047,7 @@ function updateTable(){
   html2+=`<td>${cntGrandTotal>0?cntGrandTotal:'-'}</td></tr>`;
   html2+=`</tbody></table>`;
 
-  el.innerHTML=`<div class="card" style="margin-bottom:16px;">${html}</div><div class="card">${html2}</div>`;
+  el.innerHTML=`<div class="card" style="margin-bottom:16px;">${html}</div>${sf==='cat'?`<div class="card">${html2}</div>`:''}`;
 }
 
 function updateSidebar(){
