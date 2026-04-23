@@ -755,11 +755,11 @@ function renderCostPage(data, pageId, pageTitle){
           });
         });
       } else {
-        const kubuns=unique(filtered.filter(r=>r[sfField]===v).map(r=>r['支払い区分'])).filter(Boolean).sort();
-        kubuns.forEach(k=>{
+        const divNames=unique(filtered.filter(r=>r[sfField]===v).map(r=>r['Div名'])).filter(Boolean).sort();
+        divNames.forEach(d=>{
           let pTotal=0;
-          html+=`<tr class="prod-row prod-row-${i}" style="display:none;"><td title="${k}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${k}</td>`;
-          months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v&&r['支払い区分']===k),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+          html+=`<tr class="prod-row prod-row-${i}" style="display:none;"><td title="${d}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${d}</td>`;
+          months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v&&r['Div名']===d),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
           html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
         });
       }
