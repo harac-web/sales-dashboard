@@ -648,12 +648,14 @@ function renderCostPage(data, pageId, pageTitle){
     months.forEach(m=>{html+=`<th>${m}</th>`;});
     html+=`<th>合計</th></tr></thead><tbody>`;
     const isDiv=sf==='div';
+    const isCat=sf==='cat';
     vs.forEach(({v},i)=>{
       let rowTotal=0;
-      const rowId=isDiv?`id="cat-row-${i}" `:'';
-      const rowClass=isDiv?`class="cat-row" `:'';
-      const onClick=isDiv?`onclick="toggleProdRows(${i})" `:'';
-      const icon=isDiv?`<span class="expand-icon">▶</span>`:'';
+      const expandable=isDiv||isCat;
+      const rowId=expandable?`id="cat-row-${i}" `:'';
+      const rowClass=expandable?`class="cat-row" `:'';
+      const onClick=expandable?`onclick="toggleProdRows(${i})" `:'';
+      const icon=expandable?`<span class="expand-icon">▶</span>`:'';
       html+=`<tr ${rowId}${rowClass}${onClick}><td title="${v}" style="color:var(--text);font-weight:700;">${icon}${v}</td>`;
       months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v),'amt')*100)/100;rowTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
       html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
@@ -663,6 +665,15 @@ function renderCostPage(data, pageId, pageTitle){
           let pTotal=0;
           html+=`<tr class="prod-row prod-row-${i}" style="display:none;"><td title="${tm}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${tm}</td>`;
           months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r['Div名']===v&&r['TM']===tm),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+          html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
+        });
+      }
+      if(isCat){
+        const kubuns=unique(filtered.filter(r=>r['大分類']===v).map(r=>r['支払い区分'])).filter(Boolean).sort();
+        kubuns.forEach(k=>{
+          let pTotal=0;
+          html+=`<tr class="prod-row prod-row-${i}" style="display:none;"><td title="${k}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${k}</td>`;
+          months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r['大分類']===v&&r['支払い区分']===k),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
           html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
         });
       }
