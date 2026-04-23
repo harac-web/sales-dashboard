@@ -653,18 +653,39 @@ function renderCostPage(data, pageId, pageTitle){
     let html=`<h2 style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;">月別コストデータ（万円）${viewToggle}</h2><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>${sfField}</th>`;
     months.forEach(m=>{html+=`<th>${m}</th>`;});
     html+=`<th>合計</th></tr></thead><tbody>`;
+    const deepView=view==='div'||view==='tm';
     vs.forEach(({v},i)=>{
       let rowTotal=0;
       html+=`<tr id="cat-row-${i}" class="cat-row" onclick="toggleProdRows(${i})"><td title="${v}" style="color:var(--text);font-weight:700;"><span class="expand-icon">▶</span>${v}</td>`;
       months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v),'amt')*100)/100;rowTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
       html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
-      const kubuns=unique(filtered.filter(r=>r[sfField]===v).map(r=>r['支払い区分'])).filter(Boolean).sort();
-      kubuns.forEach(k=>{
-        let pTotal=0;
-        html+=`<tr class="prod-row prod-row-${i}" style="display:none;"><td title="${k}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${k}</td>`;
-        months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v&&r['支払い区分']===k),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
-        html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
-      });
+      if(deepView){
+        // 大分類サブ行（第2レベル、さらに展開可）
+        const cats=unique(filtered.filter(r=>r[sfField]===v).map(r=>r['大分類'])).filter(Boolean).sort();
+        cats.forEach((cat,j)=>{
+          let cTotal=0;
+          html+=`<tr id="tm-row-${i}-${j}" class="prod-row prod-row-${i} tm-sub-row" onclick="toggleTmSubRows(${i},${j},event)" style="display:none;"><td title="${cat}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;"><span class="expand-icon">▶</span>${cat}</td>`;
+          months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v&&r['大分類']===cat),'amt')*100)/100;cTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+          html+=`<td>${cTotal.toFixed(1)}</td></tr>`;
+          // 支払い区分サブ行（第3レベル）
+          const kubuns=unique(filtered.filter(r=>r[sfField]===v&&r['大分類']===cat).map(r=>r['支払い区分'])).filter(Boolean).sort();
+          kubuns.forEach(k=>{
+            let pTotal=0;
+            html+=`<tr class="cat-sub-row cat-sub-row-${i}-${j}" style="display:none;"><td title="${k}" style="padding-left:38px;color:var(--dim);font-size:10px;">${k}</td>`;
+            months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v&&r['大分類']===cat&&r['支払い区分']===k),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+            html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
+          });
+        });
+      } else {
+        // 全体ビュー: 支払い区分を直接1段展開
+        const kubuns=unique(filtered.filter(r=>r[sfField]===v).map(r=>r['支払い区分'])).filter(Boolean).sort();
+        kubuns.forEach(k=>{
+          let pTotal=0;
+          html+=`<tr class="prod-row prod-row-${i}" style="display:none;"><td title="${k}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${k}</td>`;
+          months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v&&r['支払い区分']===k),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+          html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
+        });
+      }
     });
     let grandTotal=0;
     html+=`<tr class="total-row"><td>合計</td>`;
