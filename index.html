@@ -161,7 +161,7 @@ let charts={};
 let clCompanies=[];
 let clTantoSalesData=[];
 let costData=[], corpoCostData=[];
-let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",tableView:"sales",seg5St:"all",costView:"all",costKi:"all",costDiv:"all",costTm:"all",corpoView:"all",corpoKi:"all",corpoDiv:"all",corpoTm:"all",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:[],showClientPref:false,showClientArea:false,showClPref:false,showClArea:false,clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
+let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",tableView:"sales",seg5St:"all",costView:"all",costKi:"all",costSt:"all",costDiv:"all",costTm:"all",corpoView:"all",corpoKi:"all",corpoSt:"all",corpoDiv:"all",corpoTm:"all",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:[],showClientPref:false,showClientArea:false,showClPref:false,showClArea:false,clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
 
 function parseMonth(v){
   if(!v)return null;const s=String(v);let y,m;
@@ -599,6 +599,7 @@ function updateWhoTypeTable(data, whoTotals){
 function renderCostPage(data, pageId, pageTitle){
   const viewKey=pageId==='bumon'?'costView':'corpoView';
   const kiKey=pageId==='bumon'?'costKi':'corpoKi';
+  const stKey=pageId==='bumon'?'costSt':'corpoSt';
   const divKey=pageId==='bumon'?'costDiv':'corpoDiv';
   const tmKey=pageId==='bumon'?'costTm':'corpoTm';
   const view=F[viewKey]||'all';
@@ -636,6 +637,7 @@ function renderCostPage(data, pageId, pageTitle){
     if(r.monthSort<mFrom||r.monthSort>mTo)return false;
     if(F[divKey]!=='all'&&r.div!==F[divKey])return false;
     if(F[tmKey]!=='all'&&r.tm!==F[tmKey])return false;
+    if(F[stKey]!=='all'&&r.st!==F[stKey])return false;
     return true;
   });
   const salesByMonth=groupBy(salesFiltered,'month');
@@ -684,25 +686,35 @@ function renderCostPage(data, pageId, pageTitle){
     ]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8',font:{size:10}}},y:{stacked:false,ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'万'},title:{display:true,text:'万円',color:'#64748b',font:{size:9}}},y2:{type:'linear',position:'right',ticks:{color:'#6366f1',font:{size:10},callback:v=>v+'%'},grid:{drawOnChartArea:false},title:{display:true,text:'利益率',color:'#6366f1',font:{size:9}}}},plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{const sv=items.find(i=>i.dataset.label==='売上')?.raw||0;const cv=items.find(i=>i.dataset.label==='コスト')?.raw||0;return`利益: ${(sv-cv).toFixed(1)}万円`;}}}}}});
   }
 
-  // 利益サマリーテーブル（チャートカード内）
+  // 利益月別テーブル（チャートカード内）
   const pel=document.getElementById(`${pageId}ProfitTableSection`);
   if(pel){
-    const fmtRate=r=>r===null?'-':`${r.toFixed(1)}%`;
-    const fmtProfit=v=>{const s=v>=0?'color:var(--green)':'color:var(--red)';return`<span style="${s}">${v>=0?'+':''}${v.toFixed(1)}</span>`;};
-    let html=`<table class="data-table"><thead><tr><th>${sfField}</th><th>売上</th><th>コスト</th><th>利益額</th><th>利益率</th></tr></thead><tbody>`;
-    vs.forEach(({v})=>{
-      const costAmt=Math.round(sum(filtered.filter(r=>r[sfField]===v),'amt')*100)/100;
-      const salesAmt=Math.round(sum(salesFiltered.filter(r=>r[salesField]===v),'amt')*100)/100;
-      const profit=Math.round((salesAmt-costAmt)*100)/100;
-      const rate=salesAmt>0?Math.round(profit/salesAmt*1000)/10:null;
-      html+=`<tr><td style="color:var(--text);font-weight:700;">${v}</td><td>${salesAmt.toFixed(1)}</td><td>${costAmt.toFixed(1)}</td><td>${fmtProfit(profit)}</td><td style="${rate!==null&&rate>=0?'color:var(--green)':'color:var(--red)'}">${fmtRate(rate)}</td></tr>`;
-    });
-    const grandSales=Math.round(sum(salesFiltered,'amt')*100)/100;
-    const grandCost=Math.round(sum(filtered,'amt')*100)/100;
-    const grandProfit=Math.round((grandSales-grandCost)*100)/100;
-    const grandRate=grandSales>0?Math.round(grandProfit/grandSales*1000)/10:null;
-    html+=`<tr class="total-row"><td>合計</td><td>${grandSales.toFixed(1)}</td><td>${grandCost.toFixed(1)}</td><td>${fmtProfit(grandProfit)}</td><td style="${grandRate!==null&&grandRate>=0?'color:var(--green)':'color:var(--red)'}">${fmtRate(grandRate)}</td></tr>`;
-    html+=`</tbody></table>`;
+    const pc=v=>v>=0?'color:var(--green)':'color:var(--red)';
+    const fp=v=>`<span style="${pc(v)}">${v>=0?'+':''}${v.toFixed(1)}</span>`;
+    let html=`<table class="data-table"><thead><tr><th></th>`;
+    months.forEach(m=>{html+=`<th>${m}</th>`;});
+    html+=`<th>合計</th></tr></thead><tbody>`;
+    // 売上行
+    let salesTotal=0;
+    html+=`<tr><td style="color:var(--text);font-weight:700;">売上</td>`;
+    months.forEach(m=>{const v=Math.round(sum(salesByMonth[m]||[],'amt')*100)/100;salesTotal+=v;html+=v>0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+    html+=`<td>${salesTotal.toFixed(1)}</td></tr>`;
+    // コスト行
+    let costTotal=0;
+    html+=`<tr><td style="color:var(--text);font-weight:700;">コスト</td>`;
+    months.forEach(m=>{const v=Math.round(sum(byMonth[m]||[],'amt')*100)/100;costTotal+=v;html+=v>0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+    html+=`<td>${costTotal.toFixed(1)}</td></tr>`;
+    // 利益額行
+    html+=`<tr><td style="color:var(--text);font-weight:700;">利益額</td>`;
+    months.forEach(m=>{const s=Math.round(sum(salesByMonth[m]||[],'amt')*100)/100;const c=Math.round(sum(byMonth[m]||[],'amt')*100)/100;const p=Math.round((s-c)*100)/100;html+=`<td style="${pc(p)}">${p>=0?'+':''}${p.toFixed(1)}</td>`;});
+    const profitTotal=Math.round((salesTotal-costTotal)*100)/100;
+    html+=`<td style="${pc(profitTotal)}">${profitTotal>=0?'+':''}${profitTotal.toFixed(1)}</td></tr>`;
+    // 利益率行
+    html+=`<tr><td style="color:var(--text);font-weight:700;">利益率</td>`;
+    months.forEach(m=>{const s=Math.round(sum(salesByMonth[m]||[],'amt')*100)/100;const c=Math.round(sum(byMonth[m]||[],'amt')*100)/100;const r=s>0?Math.round((s-c)/s*1000)/10:null;html+=r!==null?`<td style="${pc(r)}">${r.toFixed(1)}%</td>`:`<td class="zero">-</td>`;});
+    const grandRate=salesTotal>0?Math.round(profitTotal/salesTotal*1000)/10:null;
+    html+=grandRate!==null?`<td style="${pc(grandRate)}">${grandRate.toFixed(1)}%</td>`:`<td class="zero">-</td>`;
+    html+=`</tr></tbody></table>`;
     pel.innerHTML=html;
   }
 
@@ -1335,6 +1347,7 @@ function updateSidebar(){
   } else if(F.page==='bumon'||F.page==='corpo'){
     const pageData=F.page==='bumon'?costData:corpoCostData;
     const kiKey=F.page==='bumon'?'costKi':'corpoKi';
+    const stKey=F.page==='bumon'?'costSt':'corpoSt';
     const divKey=F.page==='bumon'?'costDiv':'corpoDiv';
     const tmKey=F.page==='bumon'?'costTm':'corpoTm';
     const divs=unique(pageData.map(r=>r['Div名'])).filter(Boolean);
@@ -1342,9 +1355,10 @@ function updateSidebar(){
     const costChip=(key,vals)=>{let h=`<button class="chip chip-all ${F[key]==='all'?'active':''}" onclick="setFilter('${key}','all')">すべて</button>`;vals.forEach(v=>{h+=`<button class="chip ${F[key]===v?'active':''}" onclick="setFilter('${key}','${esc(v)}')">${v}</button>`;});return h;};
     html+=`
       ${sl('期',F[kiKey]!=='all',`setFilter('${kiKey}','all')`)}${costChip(kiKey,kis)}
+      ${sl('売上ステータス',F[stKey]!=='all',`setFilter('${stKey}','all')`)}${costChip(stKey,sts)}
       ${sl('Div名',F[divKey]!=='all',`setFilter('${divKey}','all')`)}${costChip(divKey,divs)}
       ${sl('TM',F[tmKey]!=='all',`setFilter('${tmKey}','all')`)}${costChip(tmKey,tms)}
-      <button class="btn" style="margin-top:10px;font-size:10px;padding:4px 12px;width:100%;" onclick="setFilter('${kiKey}','all');setFilter('${divKey}','all');setFilter('${tmKey}','all')">リセット</button>`;
+      <button class="btn" style="margin-top:10px;font-size:10px;padding:4px 12px;width:100%;" onclick="setFilter('${kiKey}','all');setFilter('${stKey}','all');setFilter('${divKey}','all');setFilter('${tmKey}','all')">リセット</button>`;
   } else if(F.page==='cl'){
     const tantos=unique(rawData.map(r=>r.who)).filter(Boolean).sort();
     const prefs=geoSort(unique(rawData.map(r=>r.clientPref)).filter(Boolean));
