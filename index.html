@@ -161,7 +161,7 @@ let charts={};
 let clCompanies=[];
 let clTantoSalesData=[];
 let costData=[], corpoCostData=[];
-let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",tableView:"sales",seg5St:"all",costStack:"div",costMonthFrom:"all",costMonthTo:"all",costDiv:"all",costTm:"all",corpoStack:"div",corpoMonthFrom:"all",corpoMonthTo:"all",corpoDiv:"all",corpoTm:"all",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:[],showClientPref:false,showClientArea:false,showClPref:false,showClArea:false,clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
+let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",tableView:"sales",seg5St:"all",costView:"all",costMonthFrom:"all",costMonthTo:"all",costDiv:"all",costTm:"all",corpoView:"all",corpoMonthFrom:"all",corpoMonthTo:"all",corpoDiv:"all",corpoTm:"all",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:[],showClientPref:false,showClientArea:false,showClPref:false,showClArea:false,clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
 
 function parseMonth(v){
   if(!v)return null;const s=String(v);let y,m;
@@ -597,14 +597,15 @@ function updateWhoTypeTable(data, whoTotals){
 // ===== コストページ =====
 
 function renderCostPage(data, pageId, pageTitle){
-  const stackKey=pageId==='bumon'?'costStack':'corpoStack';
+  const viewKey=pageId==='bumon'?'costView':'corpoView';
   const mFromKey=pageId==='bumon'?'costMonthFrom':'corpoMonthFrom';
   const mToKey=pageId==='bumon'?'costMonthTo':'corpoMonthTo';
   const divKey=pageId==='bumon'?'costDiv':'corpoDiv';
   const tmKey=pageId==='bumon'?'costTm':'corpoTm';
-  const sf=F[stackKey];
-  const stackFields={div:'Div名',tm:'TM',kubun:'支払い区分',cat:'大分類'};
-  const sfField=stackFields[sf]||'Div名';
+  const view=F[viewKey]||'all';
+  const viewFields={all:'大分類',div:'Div名',tm:'TM'};
+  const viewLabels={all:'全体',div:'Div',tm:'TM'};
+  const sfField=viewFields[view];
 
   const allM=[...new Map(data.map(r=>[r.monthLabel,r.monthSort])).entries()].sort((a,b)=>a[1]-b[1]).map(e=>({label:e[0],sort:e[1]}));
   const mFrom=F[mFromKey]==='all'?0:(allM.find(m=>m.label===F[mFromKey])?.sort||0);
@@ -619,10 +620,9 @@ function renderCostPage(data, pageId, pageTitle){
   const months=[...new Map(filtered.map(r=>[r.monthLabel,r.monthSort])).entries()].sort((a,b)=>a[1]-b[1]).map(e=>e[0]);
   const byMonth=groupBy(filtered,'monthLabel');
   const total=Math.round(sum(filtered,'amt')*100)/100;
-  const sv=unique(filtered.map(r=>r[sfField]));
+  const sv=view==='tm'?tmSort(unique(filtered.map(r=>r[sfField])).filter(Boolean)):unique(filtered.map(r=>r[sfField])).filter(Boolean);
   const vs=sv.map(v=>({v,s:sum(filtered.filter(r=>r[sfField]===v),'amt')})).sort((a,b)=>b.s-a.s);
 
-  const stackChips=Object.entries(stackFields).map(([k,label])=>`<button class="chip ${sf===k?'active':''}" onclick="F['${stackKey}']='${k}';render();">${label}</button>`).join('');
   const updStr=meta.updated?new Date(meta.updated).toLocaleString('ja-JP'):'-';
   const fmtAmt=v=>v>=10000?`${(v/10000).toFixed(2)}億円`:`${v.toFixed(0)}万円`;
 
@@ -644,56 +644,27 @@ function renderCostPage(data, pageId, pageTitle){
   if(charts[pageId])charts[pageId].destroy();
   if(canvas){
     const ds=vs.map(({v},i)=>({label:v,backgroundColor:COLORS[i%COLORS.length],data:months.map(m=>Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v),'amt')*100)/100)}));
-    charts[pageId]=new Chart(canvas,{type:'bar',data:{labels:months,datasets:ds},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{color:'#94a3b8',font:{size:10}}},y:{stacked:true,ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'万'}}},plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{return`合計: ${items.reduce((s,i)=>s+i.raw,0).toFixed(1)}万円`;}}}}}});
+    charts[pageId]=new Chart(canvas,{type:'bar',data:{labels:months,datasets:ds},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{color:'#94a3b8',font:{size:10}}},y:{stacked:true,ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'万'}}},plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{return`合計: ${items.reduce((s,i)=>s+i.raw,0).toFixed(1)}万円`;}}}}}}}); 
   }
 
   const el=document.getElementById(`${pageId}TableSection`);
   if(el){
-    const slabel=stackFields[sf];
-    let html=`<h2>月別 ${slabel} データ（万円）</h2><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>${slabel}</th>`;
+    const viewToggle=`<span style="display:inline-flex;align-items:center;gap:5px;margin-left:16px;vertical-align:middle;background:rgba(99,102,241,.08);border:2px solid rgba(99,102,241,.6);border-radius:10px;padding:4px 10px;"><span style="color:#fff;font-size:11px;font-weight:700;white-space:nowrap;">表示形式:</span>${Object.entries(viewLabels).map(([k,l])=>`<button class="chip ${view===k?'active':''}" style="padding:3px 10px;font-size:11px;" onclick="F['${viewKey}']='${k}';render();">${l}</button>`).join('')}</span>`;
+    let html=`<h2 style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;">月別コストデータ（万円）${viewToggle}</h2><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>${sfField}</th>`;
     months.forEach(m=>{html+=`<th>${m}</th>`;});
     html+=`<th>合計</th></tr></thead><tbody>`;
-    const isDiv=sf==='div';
-    const isCat=sf==='cat';
     vs.forEach(({v},i)=>{
       let rowTotal=0;
-      const expandable=isDiv||isCat;
-      const rowId=expandable?`id="cat-row-${i}" `:'';
-      const rowClass=expandable?`class="cat-row" `:'';
-      const onClick=expandable?`onclick="toggleProdRows(${i})" `:'';
-      const icon=expandable?`<span class="expand-icon">▶</span>`:'';
-      html+=`<tr ${rowId}${rowClass}${onClick}><td title="${v}" style="color:var(--text);font-weight:700;">${icon}${v}</td>`;
+      html+=`<tr id="cat-row-${i}" class="cat-row" onclick="toggleProdRows(${i})"><td title="${v}" style="color:var(--text);font-weight:700;"><span class="expand-icon">▶</span>${v}</td>`;
       months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v),'amt')*100)/100;rowTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
       html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
-      if(isDiv){
-        const tms=tmSort(unique(filtered.filter(r=>r['Div名']===v).map(r=>r['TM'])).filter(Boolean));
-        tms.forEach((tm,j)=>{
-          let pTotal=0;
-          const tmCats=unique(filtered.filter(r=>r['Div名']===v&&r['TM']===tm).map(r=>r['大分類'])).filter(Boolean).sort();
-          const tmExpandable=tmCats.length>0;
-          const tmIcon=tmExpandable?`<span class="expand-icon">▶</span>`:'';
-          const tmClass=tmExpandable?`class="prod-row prod-row-${i} tm-sub-row" id="tm-row-${i}-${j}" `:`class="prod-row prod-row-${i}" `;
-          const tmClick=tmExpandable?`onclick="toggleTmSubRows(${i},${j},event)" `:'';
-          html+=`<tr ${tmClass}${tmClick}style="display:none;"><td title="${tm}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${tmIcon}${tm}</td>`;
-          months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r['Div名']===v&&r['TM']===tm),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
-          html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
-          tmCats.forEach(cat=>{
-            let cTotal=0;
-            html+=`<tr class="cat-sub-row cat-sub-row-${i}-${j}" style="display:none;"><td title="${cat}" style="padding-left:38px;color:var(--dim);font-size:10px;">${cat}</td>`;
-            months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r['Div名']===v&&r['TM']===tm&&r['大分類']===cat),'amt')*100)/100;cTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
-            html+=`<td>${cTotal.toFixed(1)}</td></tr>`;
-          });
-        });
-      }
-      if(isCat){
-        const kubuns=unique(filtered.filter(r=>r['大分類']===v).map(r=>r['支払い区分'])).filter(Boolean).sort();
-        kubuns.forEach(k=>{
-          let pTotal=0;
-          html+=`<tr class="prod-row prod-row-${i}" style="display:none;"><td title="${k}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${k}</td>`;
-          months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r['大分類']===v&&r['支払い区分']===k),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
-          html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
-        });
-      }
+      const kubuns=unique(filtered.filter(r=>r[sfField]===v).map(r=>r['支払い区分'])).filter(Boolean).sort();
+      kubuns.forEach(k=>{
+        let pTotal=0;
+        html+=`<tr class="prod-row prod-row-${i}" style="display:none;"><td title="${k}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${k}</td>`;
+        months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v&&r['支払い区分']===k),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+        html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
+      });
     });
     let grandTotal=0;
     html+=`<tr class="total-row"><td>合計</td>`;
@@ -1281,17 +1252,12 @@ function updateSidebar(){
     const mToKey=F.page==='bumon'?'costMonthTo':'corpoMonthTo';
     const divKey=F.page==='bumon'?'costDiv':'corpoDiv';
     const tmKey=F.page==='bumon'?'costTm':'corpoTm';
-    const stackKey=F.page==='bumon'?'costStack':'corpoStack';
-    const stackFields={div:'Div名',tm:'TM',kubun:'支払い区分',cat:'大分類'};
     const allM=[...new Map(pageData.map(r=>[r.monthLabel,r.monthSort])).entries()].sort((a,b)=>a[1]-b[1]).map(e=>({label:e[0],sort:e[1]}));
     const mSel=(key,label)=>{let h=`<select class="sel" onchange="setFilter('${key}',this.value)"><option value="all">${label}</option>`;allM.forEach(m=>{h+=`<option value="${m.label}" ${F[key]===m.label?'selected':''}>${m.label}</option>`;});return h+`</select>`;};
     const divs=unique(pageData.map(r=>r['Div名'])).filter(Boolean);
     const tms=tmSort(unique(pageData.map(r=>r['TM'])).filter(Boolean));
     const costChip=(key,vals)=>{let h=`<button class="chip chip-all ${F[key]==='all'?'active':''}" onclick="setFilter('${key}','all')">すべて</button>`;vals.forEach(v=>{h+=`<button class="chip ${F[key]===v?'active':''}" onclick="setFilter('${key}','${esc(v)}')">${v}</button>`;});return h;};
-    const groupChips=Object.entries(stackFields).map(([k,label])=>`<button class="chip ${F[stackKey]===k?'active':''}" onclick="setFilter('${stackKey}','${k}')">${label}</button>`).join('');
     html+=`
-      ${sl('グループ化',false,'')}
-      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">${groupChips}</div>
       ${sl('計上月',F[mFromKey]!=='all'||F[mToKey]!=='all',`setFilter('${mFromKey}','all');setFilter('${mToKey}','all')`)}
       <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:4px;">${mSel(mFromKey,'開始月')}${mSel(mToKey,'終了月')}</div>
       ${sl('Div名',F[divKey]!=='all',`setFilter('${divKey}','all')`)}${costChip(divKey,divs)}
