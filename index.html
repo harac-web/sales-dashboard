@@ -684,7 +684,7 @@ function renderCostPage(data, pageId, pageTitle){
           html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
           tmCats.forEach(cat=>{
             let cTotal=0;
-            html+=`<tr class="cat-sub-row cat-sub-row-${i}-${j} prod-row prod-row-${i}" style="display:none;"><td title="${cat}" style="padding-left:38px;color:var(--dim);font-size:10px;">${cat}</td>`;
+            html+=`<tr class="cat-sub-row cat-sub-row-${i}-${j}" style="display:none;"><td title="${cat}" style="padding-left:38px;color:var(--dim);font-size:10px;">${cat}</td>`;
             months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r['Div名']===v&&r['TM']===tm&&r['大分類']===cat),'amt')*100)/100;cTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
             html+=`<td>${cTotal.toFixed(1)}</td></tr>`;
           });
