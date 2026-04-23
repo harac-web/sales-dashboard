@@ -632,11 +632,6 @@ function renderCostPage(data, pageId, pageTitle){
       <div class="kpi-grid">
         <div class="kpi"><div class="kpi-label">合計金額（税別）</div><div class="kpi-val">${fmtAmt(total)}</div><div class="kpi-sub">${filtered.length}件</div></div>
       </div>
-      <div class="controls-row" style="margin-bottom:0;">
-        <div class="stack-row" style="display:flex;margin-bottom:0;align-items:center;gap:6px;">
-          <span class="stack-label">内訳:</span>${stackChips}
-        </div>
-      </div>
     </div>
     <div class="chart-wrap" style="margin-bottom:18px;"><canvas id="${pageId}Chart" style="min-height:320px;max-height:400px;"></canvas></div>
     <div id="${pageId}TableSection" class="table-section"></div>
@@ -1286,12 +1281,17 @@ function updateSidebar(){
     const mToKey=F.page==='bumon'?'costMonthTo':'corpoMonthTo';
     const divKey=F.page==='bumon'?'costDiv':'corpoDiv';
     const tmKey=F.page==='bumon'?'costTm':'corpoTm';
+    const stackKey=F.page==='bumon'?'costStack':'corpoStack';
+    const stackFields={div:'Div名',tm:'TM',kubun:'支払い区分',cat:'大分類'};
     const allM=[...new Map(pageData.map(r=>[r.monthLabel,r.monthSort])).entries()].sort((a,b)=>a[1]-b[1]).map(e=>({label:e[0],sort:e[1]}));
     const mSel=(key,label)=>{let h=`<select class="sel" onchange="setFilter('${key}',this.value)"><option value="all">${label}</option>`;allM.forEach(m=>{h+=`<option value="${m.label}" ${F[key]===m.label?'selected':''}>${m.label}</option>`;});return h+`</select>`;};
     const divs=unique(pageData.map(r=>r['Div名'])).filter(Boolean);
     const tms=tmSort(unique(pageData.map(r=>r['TM'])).filter(Boolean));
     const costChip=(key,vals)=>{let h=`<button class="chip chip-all ${F[key]==='all'?'active':''}" onclick="setFilter('${key}','all')">すべて</button>`;vals.forEach(v=>{h+=`<button class="chip ${F[key]===v?'active':''}" onclick="setFilter('${key}','${esc(v)}')">${v}</button>`;});return h;};
+    const groupChips=Object.entries(stackFields).map(([k,label])=>`<button class="chip ${F[stackKey]===k?'active':''}" onclick="setFilter('${stackKey}','${k}')">${label}</button>`).join('');
     html+=`
+      ${sl('グループ化',false,'')}
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">${groupChips}</div>
       ${sl('計上月',F[mFromKey]!=='all'||F[mToKey]!=='all',`setFilter('${mFromKey}','all');setFilter('${mToKey}','all')`)}
       <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:4px;">${mSel(mFromKey,'開始月')}${mSel(mToKey,'終了月')}</div>
       ${sl('Div名',F[divKey]!=='all',`setFilter('${divKey}','all')`)}${costChip(divKey,divs)}
