@@ -606,35 +606,55 @@ function renderCostPage(data, pageId, pageTitle){
   const viewFields={all:'大分類',div:'Div名',tm:'TM'};
   const viewLabels={all:'全体',div:'Div',tm:'TM'};
   const sfField=viewFields[view];
+  const salesFieldMap={all:'cat',div:'div',tm:'tm'};
+  const salesField=salesFieldMap[view];
 
   const allM=[...new Map(data.map(r=>[r.monthLabel,r.monthSort])).entries()].sort((a,b)=>a[1]-b[1]).map(e=>({label:e[0],sort:e[1]}));
   const mFrom=F[mFromKey]==='all'?0:(allM.find(m=>m.label===F[mFromKey])?.sort||0);
   const mTo=F[mToKey]==='all'?99999:(allM.find(m=>m.label===F[mToKey])?.sort||99999);
+
   const filtered=data.filter(r=>{
     if(r.monthSort<mFrom||r.monthSort>mTo)return false;
     if(F[divKey]!=='all'&&(r['Div名']||'')!==F[divKey])return false;
     if(F[tmKey]!=='all'&&(r['TM']||'')!==F[tmKey])return false;
     return true;
   });
-
   const months=[...new Map(filtered.map(r=>[r.monthLabel,r.monthSort])).entries()].sort((a,b)=>a[1]-b[1]).map(e=>e[0]);
   const byMonth=groupBy(filtered,'monthLabel');
-  const total=Math.round(sum(filtered,'amt')*100)/100;
+  const totalCost=Math.round(sum(filtered,'amt')*100)/100;
   const sv=view==='tm'?tmSort(unique(filtered.map(r=>r[sfField])).filter(Boolean)):unique(filtered.map(r=>r[sfField])).filter(Boolean);
   const vs=sv.map(v=>({v,s:sum(filtered.filter(r=>r[sfField]===v),'amt')})).sort((a,b)=>b.s-a.s);
 
+  const salesFiltered=rawData.filter(r=>{
+    if(r.monthSort<mFrom||r.monthSort>mTo)return false;
+    if(F[divKey]!=='all'&&r.div!==F[divKey])return false;
+    if(F[tmKey]!=='all'&&r.tm!==F[tmKey])return false;
+    return true;
+  });
+  const salesByMonth=groupBy(salesFiltered,'month');
+  const totalSales=Math.round(sum(salesFiltered,'amt')*100)/100;
+  const totalProfit=Math.round((totalSales-totalCost)*100)/100;
+  const profitRate=totalSales>0?Math.round(totalProfit/totalSales*1000)/10:0;
+
   const updStr=meta.updated?new Date(meta.updated).toLocaleString('ja-JP'):'-';
-  const fmtAmt=v=>v>=10000?`${(v/10000).toFixed(2)}億円`:`${v.toFixed(0)}万円`;
+  const fmtAmt=v=>Math.abs(v)>=10000?`${(v/10000).toFixed(2)}億円`:`${v.toFixed(0)}万円`;
+  const profitColor=totalProfit>=0?'var(--green)':'var(--red)';
+  const rateColor=profitRate>=0?'var(--green)':'var(--red)';
 
   document.getElementById('app').innerHTML=`
     <div class="sticky-header">
       ${pageTabsHtml(`${filtered.length.toLocaleString()}件 ｜ 最終更新: ${updStr}`)}
       <div class="kpi-grid">
-        <div class="kpi"><div class="kpi-label">合計金額（税別）</div><div class="kpi-val">${fmtAmt(total)}</div><div class="kpi-sub">${filtered.length}件</div></div>
+        <div class="kpi"><div class="kpi-label">売上（万円）</div><div class="kpi-val">${fmtAmt(totalSales)}</div><div class="kpi-sub">${salesFiltered.length}件</div></div>
+        <div class="kpi"><div class="kpi-label">コスト（万円）</div><div class="kpi-val">${fmtAmt(totalCost)}</div><div class="kpi-sub">${filtered.length}件</div></div>
+        <div class="kpi" style="border-left:3px solid ${profitColor}"><div class="kpi-label">利益額（万円）</div><div class="kpi-val" style="color:${profitColor}">${fmtAmt(totalProfit)}</div></div>
+        <div class="kpi" style="border-left:3px solid ${rateColor}"><div class="kpi-label">利益率</div><div class="kpi-val" style="color:${rateColor}">${profitRate.toFixed(1)}%</div></div>
       </div>
     </div>
     <div class="chart-wrap" style="margin-bottom:18px;"><canvas id="${pageId}Chart" style="min-height:320px;max-height:400px;"></canvas></div>
+    <div class="chart-wrap" style="margin-bottom:18px;"><div class="chart-title">月別 売上 vs コスト（万円）／利益率</div><canvas id="${pageId}ProfitChart" style="min-height:280px;max-height:360px;"></canvas></div>
     <div id="${pageId}TableSection" class="table-section"></div>
+    <div id="${pageId}ProfitTableSection" class="table-section" style="margin-top:24px;"></div>
     <div class="footer">スプレッドシートからリアルタイム取得 ｜ 「更新」ボタンで最新データを反映</div>
   `;
 
@@ -645,6 +665,19 @@ function renderCostPage(data, pageId, pageTitle){
   if(canvas){
     const ds=vs.map(({v},i)=>({label:v,backgroundColor:COLORS[i%COLORS.length],data:months.map(m=>Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v),'amt')*100)/100)}));
     charts[pageId]=new Chart(canvas,{type:'bar',data:{labels:months,datasets:ds},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{color:'#94a3b8',font:{size:10}}},y:{stacked:true,ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'万'}}},plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{return`合計: ${items.reduce((s,i)=>s+i.raw,0).toFixed(1)}万円`;}}}}}});
+  }
+
+  const profitCanvas=document.getElementById(`${pageId}ProfitChart`);
+  if(charts[`${pageId}Profit`])charts[`${pageId}Profit`].destroy();
+  if(profitCanvas){
+    const salesData=months.map(m=>Math.round(sum(salesByMonth[m]||[],'amt')*100)/100);
+    const costData2=months.map(m=>Math.round(sum(byMonth[m]||[],'amt')*100)/100);
+    const rateData=months.map((m,idx)=>salesData[idx]>0?Math.round((salesData[idx]-costData2[idx])/salesData[idx]*1000)/10:null);
+    charts[`${pageId}Profit`]=new Chart(profitCanvas,{data:{labels:months,datasets:[
+      {type:'bar',label:'売上',backgroundColor:'rgba(16,185,129,.7)',data:salesData,yAxisID:'y'},
+      {type:'bar',label:'コスト',backgroundColor:'rgba(245,158,11,.7)',data:costData2,yAxisID:'y'},
+      {type:'line',label:'利益率(%)',borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.15)',data:rateData,yAxisID:'y2',tension:.3,pointRadius:4,pointBackgroundColor:'#6366f1'}
+    ]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8',font:{size:10}}},y:{stacked:false,ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'万'},title:{display:true,text:'万円',color:'#64748b',font:{size:9}}},y2:{type:'linear',position:'right',ticks:{color:'#6366f1',font:{size:10},callback:v=>v+'%'},grid:{drawOnChartArea:false},title:{display:true,text:'利益率',color:'#6366f1',font:{size:9}}}},plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{const sv=items.find(i=>i.dataset.label==='売上')?.raw||0;const cv=items.find(i=>i.dataset.label==='コスト')?.raw||0;return`利益: ${(sv-cv).toFixed(1)}万円`;}}}}}});
   }
 
   const el=document.getElementById(`${pageId}TableSection`);
@@ -660,14 +693,12 @@ function renderCostPage(data, pageId, pageTitle){
       months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v),'amt')*100)/100;rowTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
       html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
       if(deepView){
-        // 大分類サブ行（第2レベル、さらに展開可）
         const cats=unique(filtered.filter(r=>r[sfField]===v).map(r=>r['大分類'])).filter(Boolean).sort();
         cats.forEach((cat,j)=>{
           let cTotal=0;
           html+=`<tr id="tm-row-${i}-${j}" class="prod-row prod-row-${i} tm-sub-row" onclick="toggleTmSubRows(${i},${j},event)" style="display:none;"><td title="${cat}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;"><span class="expand-icon">▶</span>${cat}</td>`;
           months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v&&r['大分類']===cat),'amt')*100)/100;cTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
           html+=`<td>${cTotal.toFixed(1)}</td></tr>`;
-          // 支払い区分サブ行（第3レベル）
           const kubuns=unique(filtered.filter(r=>r[sfField]===v&&r['大分類']===cat).map(r=>r['支払い区分'])).filter(Boolean).sort();
           kubuns.forEach(k=>{
             let pTotal=0;
@@ -677,7 +708,6 @@ function renderCostPage(data, pageId, pageTitle){
           });
         });
       } else {
-        // 全体ビュー: 支払い区分を直接1段展開
         const kubuns=unique(filtered.filter(r=>r[sfField]===v).map(r=>r['支払い区分'])).filter(Boolean).sort();
         kubuns.forEach(k=>{
           let pTotal=0;
@@ -692,6 +722,27 @@ function renderCostPage(data, pageId, pageTitle){
     months.forEach(m=>{const v=Math.round(sum(byMonth[m]||[],'amt')*100)/100;grandTotal+=v;html+=`<td>${v.toFixed(1)}</td>`;});
     html+=`<td>${grandTotal.toFixed(1)}</td></tr></tbody></table></div>`;
     el.innerHTML=html;
+  }
+
+  const pel=document.getElementById(`${pageId}ProfitTableSection`);
+  if(pel){
+    const fmtRate=r=>r===null?'-':`${r.toFixed(1)}%`;
+    const fmtProfit=v=>{const s=v>=0?'color:var(--green)':'color:var(--red)';return`<span style="${s}">${v>=0?'+':''}${v.toFixed(1)}</span>`;};
+    let html=`<h2>利益サマリー（万円）</h2><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>${sfField}</th><th>売上</th><th>コスト</th><th>利益額</th><th>利益率</th></tr></thead><tbody>`;
+    vs.forEach(({v})=>{
+      const costAmt=Math.round(sum(filtered.filter(r=>r[sfField]===v),'amt')*100)/100;
+      const salesAmt=Math.round(sum(salesFiltered.filter(r=>r[salesField]===v),'amt')*100)/100;
+      const profit=Math.round((salesAmt-costAmt)*100)/100;
+      const rate=salesAmt>0?Math.round(profit/salesAmt*1000)/10:null;
+      html+=`<tr><td style="color:var(--text);font-weight:700;">${v}</td><td>${salesAmt.toFixed(1)}</td><td>${costAmt.toFixed(1)}</td><td>${fmtProfit(profit)}</td><td style="${rate!==null&&rate>=0?'color:var(--green)':'color:var(--red)'}">${fmtRate(rate)}</td></tr>`;
+    });
+    const grandSales=Math.round(sum(salesFiltered,'amt')*100)/100;
+    const grandCost=Math.round(sum(filtered,'amt')*100)/100;
+    const grandProfit=Math.round((grandSales-grandCost)*100)/100;
+    const grandRate=grandSales>0?Math.round(grandProfit/grandSales*1000)/10:null;
+    html+=`<tr class="total-row"><td>合計</td><td>${grandSales.toFixed(1)}</td><td>${grandCost.toFixed(1)}</td><td>${fmtProfit(grandProfit)}</td><td style="${grandRate!==null&&grandRate>=0?'color:var(--green)':'color:var(--red)'}">${fmtRate(grandRate)}</td></tr>`;
+    html+=`</tbody></table></div>`;
+    pel.innerHTML=html;
   }
 }
 
