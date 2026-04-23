@@ -50,6 +50,9 @@
     tr.cat-row.expanded .expand-icon{transform:rotate(90deg);}
     tr.prod-row td:first-child{padding-left:26px;color:var(--dim);font-size:10px;}
     tr.prod-row td{font-size:10px;}
+    tr.tm-sub-row{cursor:pointer;}tr.tm-sub-row:hover td:first-child .expand-icon{opacity:1;}
+    tr.tm-sub-row.expanded .expand-icon{transform:rotate(90deg);}
+    tr.cat-sub-row td{font-size:10px;}
     .multi-hint{color:var(--dim);font-size:9px;font-style:italic;margin-left:4px;}
     .sel{padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;appearance:auto;}
     .sel:focus{outline:1px solid var(--accent);}
@@ -237,7 +240,15 @@ function toggleProdRows(idx){
   const catRow=document.getElementById(`cat-row-${idx}`);if(!catRow)return;
   const isExp=catRow.classList.contains('expanded');
   document.querySelectorAll(`.prod-row-${idx}`).forEach(r=>r.style.display=isExp?'none':'');
+  if(isExp){document.querySelectorAll(`[class*="cat-sub-row-${idx}-"]`).forEach(r=>r.style.display='none');document.querySelectorAll(`[id^="tm-row-${idx}-"]`).forEach(r=>r.classList.remove('expanded'));}
   catRow.classList.toggle('expanded',!isExp);
+}
+function toggleTmSubRows(idx,j,e){
+  if(e)e.stopPropagation();
+  const tmRow=document.getElementById(`tm-row-${idx}-${j}`);if(!tmRow)return;
+  const isExp=tmRow.classList.contains('expanded');
+  document.querySelectorAll(`.cat-sub-row-${idx}-${j}`).forEach(r=>r.style.display=isExp?'none':'');
+  tmRow.classList.toggle('expanded',!isExp);
 }
 function resetFilters(){F.cat=[];F.st=[];F.client="all";F.type="all";F.who="all";F.div="all";F.ki="all";F.tm="all";F.monthFrom="all";F.monthTo="all";F.clientSt="all";F.clientPref=[];F.clientArea=[];F.clientSeg=[];render();}
 function resetWhoFilters(){F.whoCat=[];F.whoSt=[];F.whoKi="all";F.whoTm="all";F.whoDiv="all";F.whoMonthFrom="all";F.whoMonthTo="all";render();}
@@ -661,11 +672,22 @@ function renderCostPage(data, pageId, pageTitle){
       html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
       if(isDiv){
         const tms=tmSort(unique(filtered.filter(r=>r['Div名']===v).map(r=>r['TM'])).filter(Boolean));
-        tms.forEach(tm=>{
+        tms.forEach((tm,j)=>{
           let pTotal=0;
-          html+=`<tr class="prod-row prod-row-${i}" style="display:none;"><td title="${tm}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${tm}</td>`;
+          const tmCats=unique(filtered.filter(r=>r['Div名']===v&&r['TM']===tm).map(r=>r['大分類'])).filter(Boolean).sort();
+          const tmExpandable=tmCats.length>0;
+          const tmIcon=tmExpandable?`<span class="expand-icon">▶</span>`:'';
+          const tmClass=tmExpandable?`class="prod-row prod-row-${i} tm-sub-row" id="tm-row-${i}-${j}" `:`class="prod-row prod-row-${i}" `;
+          const tmClick=tmExpandable?`onclick="toggleTmSubRows(${i},${j},event)" `:'';
+          html+=`<tr ${tmClass}${tmClick}style="display:none;"><td title="${tm}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${tmIcon}${tm}</td>`;
           months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r['Div名']===v&&r['TM']===tm),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
           html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
+          tmCats.forEach(cat=>{
+            let cTotal=0;
+            html+=`<tr class="cat-sub-row cat-sub-row-${i}-${j} prod-row prod-row-${i}" style="display:none;"><td title="${cat}" style="padding-left:38px;color:var(--dim);font-size:10px;">${cat}</td>`;
+            months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r['Div名']===v&&r['TM']===tm&&r['大分類']===cat),'amt')*100)/100;cTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+            html+=`<td>${cTotal.toFixed(1)}</td></tr>`;
+          });
         });
       }
       if(isCat){
