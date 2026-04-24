@@ -692,14 +692,14 @@ function renderCostPage(data, pageId, pageTitle){
     const deepView=view==='div'||view==='tm';
     vs.forEach(({v},i)=>{
       let rowTotal=0;
-      html+=`<tr id="cat-row-${i}" class="cat-row" onclick="toggleProdRows(${i})"><td title="${v}" style="color:var(--text);font-weight:700;"><span class="expand-icon">▶</span>${v}</td>`;
+      html+=`<tr id="cat-row-${i}" class="cat-row${deepView?' expanded':''}" onclick="toggleProdRows(${i})"><td title="${v}" style="color:var(--text);font-weight:700;"><span class="expand-icon">▶</span>${v}</td>`;
       months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v),'amt')*100)/100;rowTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
       html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
       if(deepView){
         const cats=unique(filtered.filter(r=>r[sfField]===v).map(r=>r['大分類'])).filter(Boolean).sort();
         cats.forEach((cat,j)=>{
           let cTotal=0;
-          html+=`<tr id="tm-row-${i}-${j}" class="prod-row prod-row-${i} tm-sub-row" onclick="toggleTmSubRows(${i},${j},event)" style="display:none;"><td title="${cat}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;"><span class="expand-icon">▶</span>${cat}</td>`;
+          html+=`<tr id="tm-row-${i}-${j}" class="prod-row prod-row-${i} tm-sub-row" onclick="toggleTmSubRows(${i},${j},event)"><td title="${cat}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;"><span class="expand-icon">▶</span>${cat}</td>`;
           months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v&&r['大分類']===cat),'amt')*100)/100;cTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
           html+=`<td>${cTotal.toFixed(1)}</td></tr>`;
           const kubuns=unique(filtered.filter(r=>r[sfField]===v&&r['大分類']===cat).map(r=>r['支払い区分'])).filter(Boolean).sort();
