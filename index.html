@@ -742,15 +742,32 @@ function renderRiekiPage(){
   const mFrom=F[kiKey]==='all'?0:(kiMonths[F[kiKey]]?.min||0);
   const mTo=F[kiKey]==='all'?99999:(kiMonths[F[kiKey]]?.max||99999);
 
-  const filtered=costData.filter(r=>{
+  // Div/TMフィルター選択中かどうか
+  const hasDivTmFilter=F[divKey]!=='all'||F[tmKey]!=='all';
+
+  // 部門コストフィルター
+  const bumonFiltered=costData.filter(r=>{
     if(r.monthSort<mFrom||r.monthSort>mTo)return false;
     if(F[divKey]!=='all'&&(r['Div名']||'')!==F[divKey])return false;
     if(F[tmKey]!=='all'&&(r['TM']||'')!==F[tmKey])return false;
     return true;
   });
-  const months=[...new Map(filtered.map(r=>[r.monthLabel,r.monthSort])).entries()].sort((a,b)=>a[1]-b[1]).map(e=>e[0]);
-  const byMonth=groupBy(filtered,'monthLabel');
-  const totalCost=Math.round(sum(filtered,'amt')*100)/100;
+
+  // コーポコストフィルター（Div/TM選択時は非表示）
+  const corpoFiltered=hasDivTmFilter?[]:corpoCostData.filter(r=>{
+    if(r.monthSort<mFrom||r.monthSort>mTo)return false;
+    return true;
+  });
+
+  // 合算コスト
+  const allCostFiltered=[...bumonFiltered,...corpoFiltered];
+  const months=[...new Map(allCostFiltered.map(r=>[r.monthLabel,r.monthSort])).entries()].sort((a,b)=>a[1]-b[1]).map(e=>e[0]);
+  const bumonByMonth=groupBy(bumonFiltered,'monthLabel');
+  const corpoByMonth=groupBy(corpoFiltered,'monthLabel');
+  const allByMonth=groupBy(allCostFiltered,'monthLabel');
+  const totalBumon=Math.round(sum(bumonFiltered,'amt')*100)/100;
+  const totalCorpo=Math.round(sum(corpoFiltered,'amt')*100)/100;
+  const totalCost=Math.round((totalBumon+totalCorpo)*100)/100;
 
   const salesFiltered=rawData.filter(r=>{
     if(r.monthSort<mFrom||r.monthSort>mTo)return false;
@@ -771,16 +788,16 @@ function renderRiekiPage(){
 
   document.getElementById('app').innerHTML=`
     <div class="sticky-header">
-      ${pageTabsHtml(`${filtered.length.toLocaleString()}件 ｜ 最終更新: ${updStr}`)}
+      ${pageTabsHtml(`${allCostFiltered.length.toLocaleString()}件 ｜ 最終更新: ${updStr}`)}
       <div class="kpi-grid">
         <div class="kpi"><div class="kpi-label">売上（万円）</div><div class="kpi-val">${fmtAmt(totalSales)}</div><div class="kpi-sub">${salesFiltered.length}件</div></div>
-        <div class="kpi"><div class="kpi-label">コスト（万円）</div><div class="kpi-val">${fmtAmt(totalCost)}</div><div class="kpi-sub">${filtered.length}件</div></div>
+        <div class="kpi"><div class="kpi-label">コスト（万円）</div><div class="kpi-val">${fmtAmt(totalCost)}</div><div class="kpi-sub">${allCostFiltered.length}件</div></div>
         <div class="kpi" style="border-left:3px solid ${profitColor}"><div class="kpi-label">利益額（万円）</div><div class="kpi-val" style="color:${profitColor}">${fmtAmt(totalProfit)}</div></div>
         <div class="kpi" style="border-left:3px solid ${rateColor}"><div class="kpi-label">利益率</div><div class="kpi-val" style="color:${rateColor}">${profitRate.toFixed(1)}%</div></div>
       </div>
     </div>
     <div class="chart-wrap" style="margin-bottom:18px;">
-      <div class="chart-title">月別 売上 vs コスト（万円）／利益率</div>
+      <div class="chart-title">月別 売上 vs コスト（万円）／利益率${hasDivTmFilter?'<span style="font-size:10px;color:var(--muted);margin-left:8px;">※部門コストのみ</span>':''}</div>
       <canvas id="riekiProfitChart" style="min-height:280px;max-height:360px;"></canvas>
       <div id="riekiProfitTableSection" style="margin-top:12px;overflow-x:auto;"></div>
     </div>
@@ -789,12 +806,12 @@ function renderRiekiPage(){
 
   updateSidebar();
 
-  // 利益チャート（売上vsコスト棒＋利益率折れ線）
+  // 利益チャート（合算コスト使用）
   const profitCanvas=document.getElementById('riekiProfitChart');
   if(charts['riekiProfit'])charts['riekiProfit'].destroy();
   if(profitCanvas){
     const salesData=months.map(m=>Math.round(sum(salesByMonth[m]||[],'amt')*100)/100);
-    const costData2=months.map(m=>Math.round(sum(byMonth[m]||[],'amt')*100)/100);
+    const costData2=months.map(m=>Math.round(sum(allByMonth[m]||[],'amt')*100)/100);
     const rateData=months.map((m,idx)=>salesData[idx]>0?Math.round((salesData[idx]-costData2[idx])/salesData[idx]*1000)/10:null);
     charts['riekiProfit']=new Chart(profitCanvas,{data:{labels:months,datasets:[
       {type:'bar',label:'売上',backgroundColor:'rgba(16,185,129,.7)',data:salesData,yAxisID:'y'},
@@ -810,20 +827,36 @@ function renderRiekiPage(){
     let html=`<table class="data-table"><thead><tr><th></th>`;
     months.forEach(m=>{html+=`<th>${m}</th>`;});
     html+=`<th>合計</th></tr></thead><tbody>`;
+    // 売上行
     let salesTotal=0;
     html+=`<tr><td style="color:var(--text);font-weight:700;">売上</td>`;
     months.forEach(m=>{const v=Math.round(sum(salesByMonth[m]||[],'amt')*100)/100;salesTotal+=v;html+=v>0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
     html+=`<td>${salesTotal.toFixed(1)}</td></tr>`;
+    // コスト合算行
     let costTotal=0;
     html+=`<tr><td style="color:var(--text);font-weight:700;">コスト</td>`;
-    months.forEach(m=>{const v=Math.round(sum(byMonth[m]||[],'amt')*100)/100;costTotal+=v;html+=v>0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+    months.forEach(m=>{const v=Math.round(sum(allByMonth[m]||[],'amt')*100)/100;costTotal+=v;html+=v>0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
     html+=`<td>${costTotal.toFixed(1)}</td></tr>`;
+    // 部門コストサブ行
+    let bumonTotal=0;
+    html+=`<tr><td style="padding-left:20px;color:var(--muted);font-size:11px;">└ 部門コスト</td>`;
+    months.forEach(m=>{const v=Math.round(sum(bumonByMonth[m]||[],'amt')*100)/100;bumonTotal+=v;html+=v>0?`<td style="color:var(--muted);font-size:11px;">${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+    html+=`<td style="color:var(--muted);font-size:11px;">${bumonTotal.toFixed(1)}</td></tr>`;
+    // コーポコストサブ行（Div/TMフィルターなしのみ）
+    if(!hasDivTmFilter){
+      let corpoTotal=0;
+      html+=`<tr><td style="padding-left:20px;color:var(--muted);font-size:11px;">└ コーポコスト</td>`;
+      months.forEach(m=>{const v=Math.round(sum(corpoByMonth[m]||[],'amt')*100)/100;corpoTotal+=v;html+=v>0?`<td style="color:var(--muted);font-size:11px;">${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+      html+=`<td style="color:var(--muted);font-size:11px;">${corpoTotal.toFixed(1)}</td></tr>`;
+    }
+    // 利益額行
     html+=`<tr><td style="color:var(--text);font-weight:700;">利益額</td>`;
-    months.forEach(m=>{const s=Math.round(sum(salesByMonth[m]||[],'amt')*100)/100;const c=Math.round(sum(byMonth[m]||[],'amt')*100)/100;const p=Math.round((s-c)*100)/100;html+=`<td style="${pc(p)}">${p>=0?'+':''}${p.toFixed(1)}</td>`;});
+    months.forEach(m=>{const s=Math.round(sum(salesByMonth[m]||[],'amt')*100)/100;const c=Math.round(sum(allByMonth[m]||[],'amt')*100)/100;const p=Math.round((s-c)*100)/100;html+=`<td style="${pc(p)}">${p>=0?'+':''}${p.toFixed(1)}</td>`;});
     const profitTotal=Math.round((salesTotal-costTotal)*100)/100;
     html+=`<td style="${pc(profitTotal)}">${profitTotal>=0?'+':''}${profitTotal.toFixed(1)}</td></tr>`;
+    // 利益率行
     html+=`<tr><td style="color:var(--text);font-weight:700;">利益率</td>`;
-    months.forEach(m=>{const s=Math.round(sum(salesByMonth[m]||[],'amt')*100)/100;const c=Math.round(sum(byMonth[m]||[],'amt')*100)/100;const r=s>0?Math.round((s-c)/s*1000)/10:null;html+=r!==null?`<td style="${pc(r)}">${r.toFixed(1)}%</td>`:`<td class="zero">-</td>`;});
+    months.forEach(m=>{const s=Math.round(sum(salesByMonth[m]||[],'amt')*100)/100;const c=Math.round(sum(allByMonth[m]||[],'amt')*100)/100;const r=s>0?Math.round((s-c)/s*1000)/10:null;html+=r!==null?`<td style="${pc(r)}">${r.toFixed(1)}%</td>`:`<td class="zero">-</td>`;});
     const grandRate=salesTotal>0?Math.round(profitTotal/salesTotal*1000)/10:null;
     html+=grandRate!==null?`<td style="${pc(grandRate)}">${grandRate.toFixed(1)}%</td>`:`<td class="zero">-</td>`;
     html+=`</tr></tbody></table>`;
