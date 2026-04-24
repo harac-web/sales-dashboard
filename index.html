@@ -659,12 +659,11 @@ function renderCostPage(data, pageId, pageTitle){
       <div class="kpi-grid">
         <div class="kpi"><div class="kpi-label">売上（万円）</div><div class="kpi-val">${fmtAmt(totalSales)}</div><div class="kpi-sub">${salesFiltered.length}件</div></div>
         <div class="kpi"><div class="kpi-label">コスト（万円）</div><div class="kpi-val">${fmtAmt(totalCost)}</div><div class="kpi-sub">${filtered.length}件</div></div>
-        ${pageId!=='corpo'?`<div class="kpi" style="border-left:3px solid ${profitColor}"><div class="kpi-label">利益額（万円）</div><div class="kpi-val" style="color:${profitColor}">${fmtAmt(totalProfit)}</div></div>`:''}
-        ${pageId!=='corpo'?`<div class="kpi" style="border-left:3px solid ${rateColor}"><div class="kpi-label">利益率</div><div class="kpi-val" style="color:${rateColor}">${profitRate.toFixed(1)}%</div></div>`:''}
       </div>
     </div>
     <div class="chart-wrap" style="margin-bottom:18px;"><canvas id="${pageId}Chart" style="min-height:320px;max-height:400px;"></canvas></div>
     <div id="${pageId}TableSection" class="table-section"></div>
+    ${pageId==='bumon'?'<div style="margin:8px 0 16px;font-size:13px;color:var(--amber);font-weight:600;">※ 現状社員人件費は入ってない！（後で要追加）</div>':''}
     <div class="footer">スプレッドシートからリアルタイム取得 ｜ 「更新」ボタンで最新データを反映</div>
   `;
 
