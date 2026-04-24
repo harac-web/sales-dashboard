@@ -877,28 +877,37 @@ function renderRiekiPage(){
   // 固定売上・人件費テーブル
   const fel=document.getElementById('riekiFixedTableSection');
   if(fel){
-    const totalFixed=Math.round(sum(fixedSalesFiltered,'amt')*100)/100;
-    const totalJinken=Math.round(sum(jinkenFiltered,'amt')*100)/100;
     let html=`<table class="data-table"><thead><tr><th></th>`;
     months.forEach(m=>{html+=`<th>${m}</th>`;});
     html+=`<th>合計</th></tr></thead><tbody>`;
-    // 固定売上行
+    // 売上（全体）行
+    let salesAllTotal=0;
+    html+=`<tr><td style="color:var(--text);font-weight:700;">売上</td>`;
+    months.forEach(m=>{const v=Math.round(sum(salesByMonth[m]||[],'amt')*100)/100;salesAllTotal+=v;html+=v>0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+    html+=`<td>${salesAllTotal.toFixed(1)}</td></tr>`;
+    // └固定費売上サブ行
     let fixedTotal=0;
-    html+=`<tr><td style="color:var(--text);font-weight:700;">固定売上</td>`;
-    months.forEach(m=>{const v=Math.round(sum(fixedSalesByMonth[m]||[],'amt')*100)/100;fixedTotal+=v;html+=v>0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
-    html+=`<td>${fixedTotal.toFixed(1)}</td></tr>`;
+    html+=`<tr><td style="padding-left:20px;color:var(--muted);font-size:11px;">└ 固定費売上</td>`;
+    months.forEach(m=>{const v=Math.round(sum(fixedSalesByMonth[m]||[],'amt')*100)/100;fixedTotal+=v;html+=v>0?`<td style="color:var(--muted);font-size:11px;">${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+    html+=`<td style="color:var(--muted);font-size:11px;">${fixedTotal.toFixed(1)}</td></tr>`;
     // 人件費行
     let jinkenTotal=0;
     html+=`<tr><td style="color:var(--text);font-weight:700;">人件費</td>`;
     months.forEach(m=>{const v=Math.round(sum(jinkenByMonth[m]||[],'amt')*100)/100;jinkenTotal+=v;html+=v>0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
     html+=`<td>${jinkenTotal.toFixed(1)}</td></tr>`;
-    // 差額行（固定売上 - 人件費）
-    html+=`<tr><td style="color:var(--text);font-weight:700;">差額</td>`;
+    // 固定費売上-人件費行
+    html+=`<tr><td style="color:var(--text);font-weight:700;">固定費売上-人件費</td>`;
     months.forEach(m=>{const f=Math.round(sum(fixedSalesByMonth[m]||[],'amt')*100)/100;const j=Math.round(sum(jinkenByMonth[m]||[],'amt')*100)/100;const d=Math.round((f-j)*100)/100;const c=d>=0?'color:var(--green)':'color:var(--red)';html+=`<td style="${c}">${d>=0?'+':''}${d.toFixed(1)}</td>`;});
     const diffTotal=Math.round((fixedTotal-jinkenTotal)*100)/100;
     const diffColor=diffTotal>=0?'color:var(--green)':'color:var(--red)';
     html+=`<td style="${diffColor}">${diffTotal>=0?'+':''}${diffTotal.toFixed(1)}</td></tr>`;
-    html+=`</tbody></table>`;
+    // 人件費率行（人件費÷売上）
+    html+=`<tr><td style="color:var(--text);font-weight:700;">人件費率</td>`;
+    months.forEach(m=>{const s=Math.round(sum(salesByMonth[m]||[],'amt')*100)/100;const j=Math.round(sum(jinkenByMonth[m]||[],'amt')*100)/100;const r=s>0?Math.round(j/s*1000)/10:null;const c=r!==null?(r<=30?'color:var(--green)':'color:var(--amber)'):'';html+=r!==null?`<td style="${c}">${r.toFixed(1)}%</td>`:`<td class="zero">-</td>`;});
+    const totalRate=salesAllTotal>0?Math.round(jinkenTotal/salesAllTotal*1000)/10:null;
+    const totalRateColor=totalRate!==null?(totalRate<=30?'color:var(--green)':'color:var(--amber)'):'';
+    html+=totalRate!==null?`<td style="${totalRateColor}">${totalRate.toFixed(1)}%</td>`:`<td class="zero">-</td>`;
+    html+=`</tr></tbody></table><p style="font-size:10px;color:var(--dim);margin-top:6px;">※現状は部門コストの人件費のみ計上（社員人件費はあとで追加）</p>`;
     fel.innerHTML=html;
   }
 }
