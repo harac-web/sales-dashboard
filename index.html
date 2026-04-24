@@ -160,8 +160,8 @@ let meta={updated:"",count:0};
 let charts={};
 let clCompanies=[];
 let clTantoSalesData=[];
-let costData=[], corpoCostData=[];
-let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",tableView:"sales",seg5St:"all",costView:"all",costKi:"all",costSt:"all",costDiv:"all",costTm:"all",corpoView:"all",corpoKi:"all",corpoSt:"all",corpoDiv:"all",corpoTm:"all",riekiKi:"all",riekiSt:"all",riekiDiv:"all",riekiTm:"all",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:[],showClientPref:false,showClientArea:false,showClPref:false,showClArea:false,clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
+let costData=[], corpoCostData=[], seikyuuData=[];
+let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all",monthFrom:"all",monthTo:"all",tab:"bar",stack:"cat",tableView:"sales",seg5St:"all",costView:"all",costKi:"all",costSt:"all",costDiv:"all",costTm:"all",corpoView:"all",corpoKi:"all",corpoSt:"all",corpoDiv:"all",corpoTm:"all",riekiKi:"all",riekiSt:"all",riekiDiv:"all",riekiTm:"all",seikyuuKi:"all",showFilters:true,page:"main",salesTab:"overview",clientSt:"all",clientPref:[],clientArea:[],clientSeg:[],showClientPref:false,showClientArea:false,showClPref:false,showClArea:false,clTanto:"all",clSt:"all",clSeg:"all",clPref:[],clArea:[],clKi:"all",clMonthFrom:"all",clMonthTo:"all",clTab:"overview",tantoKi:"all",tantoMonthFrom:"all",tantoMonthTo:"all",whoKi:"all",whoSt:[],whoMonthFrom:"all",whoMonthTo:"all",whoTm:"all",whoCat:[],whoDiv:"all"};
 
 function parseMonth(v){
   if(!v)return null;const s=String(v);let y,m;
@@ -195,6 +195,7 @@ async function fetchData(){
     const normCost=r=>{const pm=parseMonth(r['年月']);return{...r,monthLabel:pm?pm.label:'',monthSort:pm?pm.sort:0,amt:(parseFloat(r['金額（税別）'])||0)/10000};};
     costData=(json.costData||[]).map(normCost).filter(r=>r.monthLabel);
     corpoCostData=(json.corpoCostData||[]).map(normCost).filter(r=>r.monthLabel);
+    seikyuuData=(json.seikyuuData||[]).map(r=>{const pm=parseMonth(r.month);return{...r,monthLabel:pm?pm.label:'',monthSort:pm?pm.sort:0,amt:(parseFloat(r.amt)||0)/10000,rowIndex:parseInt(r.rowIndex)||0};}).filter(r=>r.monthLabel);
     render();
   }catch(e){document.getElementById("app").innerHTML=`<div class="loading"><div style="font-size:32px;margin-bottom:12px;">⚠️</div><div style="font-size:16px;font-weight:700;margin-bottom:8px;">データ取得エラー</div><div style="font-size:12px;color:#ef4444;margin-bottom:16px;">${e.message}</div><button class="btn btn-accent" onclick="fetchData()">再読み込み</button></div>`;}
 }
@@ -279,7 +280,7 @@ function monthSelectHtml(key,label){
 
 function pageTabsHtml(subtitle){
   if(!allowedTabs.includes(F.page))F.page=allowedTabs[0]||'main';
-  const tabDefs=[{id:'main',label:'売上'},{id:'cl',label:'CL情報'},{id:'bumon',label:'部門コスト'},{id:'corpo',label:'コーポレートコスト'},{id:'rieki',label:'利益関連'}].filter(t=>allowedTabs.includes(t.id));
+  const tabDefs=[{id:'main',label:'売上'},{id:'cl',label:'CL情報'},{id:'bumon',label:'部門コスト'},{id:'corpo',label:'コーポレートコスト'},{id:'rieki',label:'利益関連'},{id:'seikyuu',label:'請求関連'}].filter(t=>allowedTabs.includes(t.id));
   const tabsHtml=tabDefs.map(t=>`<button class="page-tab ${F.page===t.id?'active':''}" onclick="F.page='${t.id}';render()">${t.label}</button>`).join('');
   return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
     <div class="page-tabs" style="margin-bottom:0;">${tabsHtml}</div>
@@ -304,6 +305,7 @@ function render(){
   if(F.page==='bumon'){renderCostPage(costData,'bumon','部門コスト');return;}
   if(F.page==='corpo'){renderCostPage(corpoCostData,'corpo','コーポレートコスト');return;}
   if(F.page==='rieki'){renderRiekiPage();return;}
+  if(F.page==='seikyuu'){renderSeikyuuPage();return;}
   if(F.salesTab==='who'){renderWhoPage();return;}
 
   const cats=unique(rawData.map(r=>r.cat)),whos=whoSort(unique(rawData.map(r=>r.who))),divs=unique(rawData.map(r=>r.div)),kis=unique(rawData.map(r=>r.ki)),sts=unique(rawData.map(r=>r.st)),tms=tmSort(unique(rawData.map(r=>r.tm)));
@@ -934,6 +936,67 @@ function renderRiekiPage(){
   }
 }
 
+// ===== 請求関連ページ =====
+
+function renderSeikyuuPage(){
+  const kiKey='seikyuuKi';
+
+  // 期→月範囲マッピング（rawDataから生成）
+  const kiMonths={};
+  rawData.forEach(r=>{
+    if(!r.ki||!r.monthSort)return;
+    if(!kiMonths[r.ki])kiMonths[r.ki]={min:r.monthSort,max:r.monthSort};
+    kiMonths[r.ki].min=Math.min(kiMonths[r.ki].min,r.monthSort);
+    kiMonths[r.ki].max=Math.max(kiMonths[r.ki].max,r.monthSort);
+  });
+  const kis=unique(rawData.map(r=>r.ki)).filter(Boolean);
+  const mFrom=F[kiKey]==='all'?0:(kiMonths[F[kiKey]]?.min||0);
+  const mTo=F[kiKey]==='all'?99999:(kiMonths[F[kiKey]]?.max||99999);
+
+  const filtered=seikyuuData.filter(r=>r.monthSort>=mFrom&&r.monthSort<=mTo);
+  const months=[...new Map(filtered.map(r=>[r.monthLabel,r.monthSort])).entries()].sort((a,b)=>a[1]-b[1]).map(e=>e[0]);
+
+  // カテゴリをrowIndex順に並べる
+  const catIndex={};
+  filtered.forEach(r=>{if(catIndex[r.cat]===undefined||r.rowIndex<catIndex[r.cat])catIndex[r.cat]=r.rowIndex;});
+  const cats=Object.keys(catIndex).sort((a,b)=>catIndex[a]-catIndex[b]);
+
+  // 月×カテゴリで集計
+  const byMonthCat={};
+  filtered.forEach(r=>{const k=r.monthLabel+'__'+r.cat;byMonthCat[k]=(byMonthCat[k]||0)+r.amt;});
+
+  const updStr=meta.updated?new Date(meta.updated).toLocaleString('ja-JP'):'-';
+
+  document.getElementById('app').innerHTML=`
+    <div class="sticky-header">
+      ${pageTabsHtml(`最終更新: ${updStr}`)}
+    </div>
+    <div id="seikyuuTableSection" class="table-section"></div>
+    <div class="footer">スプレッドシートからリアルタイム取得 ｜ 「更新」ボタンで最新データを反映</div>
+  `;
+
+  updateSidebar();
+
+  const el=document.getElementById('seikyuuTableSection');
+  if(el){
+    let html=`<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>カテゴリ</th>`;
+    months.forEach(m=>{html+=`<th>${m}</th>`;});
+    html+=`<th>合計</th></tr></thead><tbody>`;
+    cats.forEach(cat=>{
+      let rowTotal=0;
+      html+=`<tr><td style="color:var(--text);font-weight:700;white-space:nowrap;">${cat}</td>`;
+      months.forEach(m=>{
+        const v=Math.round((byMonthCat[m+'__'+cat]||0)*100)/100;
+        rowTotal=Math.round((rowTotal+v)*100)/100;
+        html+=v!==0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;
+      });
+      html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
+    });
+    html+=`</tbody></table></div>`;
+    el.innerHTML=html;
+  }
+}
+
 // ===== CL情報ページ =====
 
 function renderClPage(){
@@ -1506,11 +1569,12 @@ function updateSidebar(){
       ${sl('大分類',F.whoCat.length>0,"clearMulti('whoCat')")}${multiChipsHtml('whoCat',cats)}
       ${sl('Div',F.whoDiv!=='all',"setFilter('whoDiv','all')")}${chipsHtml('whoDiv',divs)}
       <button class="btn" style="margin-top:10px;font-size:10px;padding:4px 12px;width:100%;" onclick="resetWhoFilters()">すべてリセット</button>`;
-  } else if(F.page==='corpo'){
+  } else if(F.page==='corpo'||F.page==='seikyuu'){
+    const pgKiKey=F.page==='corpo'?'corpoKi':'seikyuuKi';
     const costChip=(key,vals)=>{let h=`<button class="chip chip-all ${F[key]==='all'?'active':''}" onclick="setFilter('${key}','all')">すべて</button>`;vals.forEach(v=>{h+=`<button class="chip ${F[key]===v?'active':''}" onclick="setFilter('${key}','${esc(v)}')">${v}</button>`;});return h;};
     html+=`
-      ${sl('期',F.corpoKi!=='all',"setFilter('corpoKi','all')")}${costChip('corpoKi',kis)}
-      <button class="btn" style="margin-top:10px;font-size:10px;padding:4px 12px;width:100%;" onclick="setFilter('corpoKi','all')">リセット</button>`;
+      ${sl('期',F[pgKiKey]!=='all',`setFilter('${pgKiKey}','all')`)}${costChip(pgKiKey,kis)}
+      <button class="btn" style="margin-top:10px;font-size:10px;padding:4px 12px;width:100%;" onclick="setFilter('${pgKiKey}','all')">リセット</button>`;
   } else if(F.page==='bumon'||F.page==='rieki'){
     const pageData=costData;
     const kiKey=F.page==='bumon'?'costKi':'riekiKi';
