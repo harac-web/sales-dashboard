@@ -832,18 +832,20 @@ function renderRiekiPage(){
     html+=`<tr><td style="color:var(--text);font-weight:700;">売上</td>`;
     months.forEach(m=>{const v=Math.round(sum(salesByMonth[m]||[],'amt')*100)/100;salesTotal+=v;html+=v>0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
     html+=`<td>${salesTotal.toFixed(1)}</td></tr>`;
-    // コスト合算行
+    // コスト行（フィルターあり→部門コストのみをトップレベル、なし→合算＋サブ行）
     let costTotal=0;
-    html+=`<tr><td style="color:var(--text);font-weight:700;">コスト</td>`;
-    months.forEach(m=>{const v=Math.round(sum(allByMonth[m]||[],'amt')*100)/100;costTotal+=v;html+=v>0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
-    html+=`<td>${costTotal.toFixed(1)}</td></tr>`;
-    // 部門コストサブ行
-    let bumonTotal=0;
-    html+=`<tr><td style="padding-left:20px;color:var(--muted);font-size:11px;">└ 部門コスト</td>`;
-    months.forEach(m=>{const v=Math.round(sum(bumonByMonth[m]||[],'amt')*100)/100;bumonTotal+=v;html+=v>0?`<td style="color:var(--muted);font-size:11px;">${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
-    html+=`<td style="color:var(--muted);font-size:11px;">${bumonTotal.toFixed(1)}</td></tr>`;
-    // コーポコストサブ行（Div/TMフィルターなしのみ）
-    if(!hasDivTmFilter){
+    if(hasDivTmFilter){
+      html+=`<tr><td style="color:var(--text);font-weight:700;">部門コスト</td>`;
+      months.forEach(m=>{const v=Math.round(sum(bumonByMonth[m]||[],'amt')*100)/100;costTotal+=v;html+=v>0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+      html+=`<td>${costTotal.toFixed(1)}</td></tr>`;
+    } else {
+      html+=`<tr><td style="color:var(--text);font-weight:700;">コスト</td>`;
+      months.forEach(m=>{const v=Math.round(sum(allByMonth[m]||[],'amt')*100)/100;costTotal+=v;html+=v>0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+      html+=`<td>${costTotal.toFixed(1)}</td></tr>`;
+      let bumonTotal=0;
+      html+=`<tr><td style="padding-left:20px;color:var(--muted);font-size:11px;">└ 部門コスト</td>`;
+      months.forEach(m=>{const v=Math.round(sum(bumonByMonth[m]||[],'amt')*100)/100;bumonTotal+=v;html+=v>0?`<td style="color:var(--muted);font-size:11px;">${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+      html+=`<td style="color:var(--muted);font-size:11px;">${bumonTotal.toFixed(1)}</td></tr>`;
       let corpoTotal=0;
       html+=`<tr><td style="padding-left:20px;color:var(--muted);font-size:11px;">└ コーポコスト</td>`;
       months.forEach(m=>{const v=Math.round(sum(corpoByMonth[m]||[],'amt')*100)/100;corpoTotal+=v;html+=v>0?`<td style="color:var(--muted);font-size:11px;">${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
