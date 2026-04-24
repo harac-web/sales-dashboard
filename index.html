@@ -659,8 +659,8 @@ function renderCostPage(data, pageId, pageTitle){
       <div class="kpi-grid">
         <div class="kpi"><div class="kpi-label">売上（万円）</div><div class="kpi-val">${fmtAmt(totalSales)}</div><div class="kpi-sub">${salesFiltered.length}件</div></div>
         <div class="kpi"><div class="kpi-label">コスト（万円）</div><div class="kpi-val">${fmtAmt(totalCost)}</div><div class="kpi-sub">${filtered.length}件</div></div>
-        <div class="kpi" style="border-left:3px solid ${profitColor}"><div class="kpi-label">利益額（万円）</div><div class="kpi-val" style="color:${profitColor}">${fmtAmt(totalProfit)}</div></div>
-        <div class="kpi" style="border-left:3px solid ${rateColor}"><div class="kpi-label">利益率</div><div class="kpi-val" style="color:${rateColor}">${profitRate.toFixed(1)}%</div></div>
+        ${pageId!=='corpo'?`<div class="kpi" style="border-left:3px solid ${profitColor}"><div class="kpi-label">利益額（万円）</div><div class="kpi-val" style="color:${profitColor}">${fmtAmt(totalProfit)}</div></div>`:''}
+        ${pageId!=='corpo'?`<div class="kpi" style="border-left:3px solid ${rateColor}"><div class="kpi-label">利益率</div><div class="kpi-val" style="color:${rateColor}">${profitRate.toFixed(1)}%</div></div>`:''}
       </div>
     </div>
     <div class="chart-wrap" style="margin-bottom:18px;"><canvas id="${pageId}Chart" style="min-height:320px;max-height:400px;"></canvas></div>
@@ -707,13 +707,23 @@ function renderCostPage(data, pageId, pageTitle){
           });
         });
       } else {
-        const divNames=unique(filtered.filter(r=>r[sfField]===v).map(r=>r['Div名'])).filter(Boolean).sort();
-        divNames.forEach(d=>{
-          let pTotal=0;
-          html+=`<tr class="prod-row prod-row-${i}" style="display:none;"><td title="${d}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${d}</td>`;
-          months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v&&r['Div名']===d),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
-          html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
-        });
+        if(pageId==='corpo'){
+          const kubuns=unique(filtered.filter(r=>r[sfField]===v).map(r=>r['支払い区分'])).filter(Boolean).sort();
+          kubuns.forEach(k=>{
+            let pTotal=0;
+            html+=`<tr class="prod-row prod-row-${i}" style="display:none;"><td title="${k}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${k}</td>`;
+            months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v&&r['支払い区分']===k),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+            html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
+          });
+        } else {
+          const divNames=unique(filtered.filter(r=>r[sfField]===v).map(r=>r['Div名'])).filter(Boolean).sort();
+          divNames.forEach(d=>{
+            let pTotal=0;
+            html+=`<tr class="prod-row prod-row-${i}" style="display:none;"><td title="${d}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;">${d}</td>`;
+            months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v&&r['Div名']===d),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+            html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
+          });
+        }
       }
     });
     let grandTotal=0;
@@ -1586,10 +1596,10 @@ function updateSidebar(){
     const costChip=(key,vals)=>{let h=`<button class="chip chip-all ${F[key]==='all'?'active':''}" onclick="setFilter('${key}','all')">すべて</button>`;vals.forEach(v=>{h+=`<button class="chip ${F[key]===v?'active':''}" onclick="setFilter('${key}','${esc(v)}')">${v}</button>`;});return h;};
     html+=`
       ${sl('期',F[kiKey]!=='all',`setFilter('${kiKey}','all')`)}${costChip(kiKey,kis)}
-      ${sl('売上ステータス',F[stKey]!=='all',`setFilter('${stKey}','all')`)}${costChip(stKey,sts)}
+      ${F.page==='rieki'?`${sl('売上ステータス',F[stKey]!=='all',`setFilter('${stKey}','all')`)}${costChip(stKey,sts)}`:''}
       ${sl('Div名',F[divKey]!=='all',`setFilter('${divKey}','all')`)}${costChip(divKey,divs)}
       ${sl('TM',F[tmKey]!=='all',`setFilter('${tmKey}','all')`)}${costChip(tmKey,tms)}
-      <button class="btn" style="margin-top:10px;font-size:10px;padding:4px 12px;width:100%;" onclick="setFilter('${kiKey}','all');setFilter('${stKey}','all');setFilter('${divKey}','all');setFilter('${tmKey}','all')">リセット</button>`;
+      <button class="btn" style="margin-top:10px;font-size:10px;padding:4px 12px;width:100%;" onclick="setFilter('${kiKey}','all');${F.page==='rieki'?`setFilter('${stKey}','all');`:''}setFilter('${divKey}','all');setFilter('${tmKey}','all')">リセット</button>`;
   } else if(F.page==='cl'){
     const tantos=unique(rawData.map(r=>r.who)).filter(Boolean).sort();
     const prefs=geoSort(unique(rawData.map(r=>r.clientPref)).filter(Boolean));
