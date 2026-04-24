@@ -808,7 +808,8 @@ function renderRiekiPage(){
     </div>
     <div class="chart-wrap" style="margin-bottom:18px;">
       <div class="chart-title">固定売上・人件費（万円）</div>
-      <div id="riekiFixedTableSection" style="overflow-x:auto;"></div>
+      <canvas id="riekiFixedChart" style="min-height:260px;max-height:320px;"></canvas>
+      <div id="riekiFixedTableSection" style="margin-top:12px;overflow-x:auto;"></div>
     </div>
     <div class="footer">スプレッドシートからリアルタイム取得 ｜ 「更新」ボタンで最新データを反映</div>
   `;
@@ -874,6 +875,20 @@ function renderRiekiPage(){
     pel.innerHTML=html;
   }
 
+  // 固定売上・人件費チャート
+  const fixedCanvas=document.getElementById('riekiFixedChart');
+  if(charts['riekiFixed'])charts['riekiFixed'].destroy();
+  if(fixedCanvas){
+    const fixedData=months.map(m=>Math.round(sum(fixedSalesByMonth[m]||[],'amt')*100)/100);
+    const jinkenData=months.map(m=>Math.round(sum(jinkenByMonth[m]||[],'amt')*100)/100);
+    const rateData=months.map((m,idx)=>fixedData[idx]>0?Math.round(jinkenData[idx]/fixedData[idx]*1000)/10:null);
+    charts['riekiFixed']=new Chart(fixedCanvas,{data:{labels:months,datasets:[
+      {type:'bar',label:'固定費売上',backgroundColor:'rgba(16,185,129,.7)',data:fixedData,yAxisID:'y'},
+      {type:'bar',label:'人件費',backgroundColor:'rgba(245,158,11,.7)',data:jinkenData,yAxisID:'y'},
+      {type:'line',label:'人件費率（対固定費売上）',borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.1)',data:rateData,yAxisID:'y2',tension:.3,pointRadius:4,pointBackgroundColor:'#ef4444'}
+    ]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8',font:{size:10}}},y:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'万'},title:{display:true,text:'万円',color:'#64748b',font:{size:9}}},y2:{type:'linear',position:'right',ticks:{color:'#ef4444',font:{size:10},callback:v=>v+'%'},grid:{drawOnChartArea:false},title:{display:true,text:'人件費率',color:'#ef4444',font:{size:9}}}},plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{const fv=items.find(i=>i.dataset.label==='固定費売上')?.raw||0;const jv=items.find(i=>i.dataset.label==='人件費')?.raw||0;return`余白: ${(fv-jv).toFixed(1)}万円`;}}}}}});
+  }
+
   // 固定売上・人件費テーブル
   const fel=document.getElementById('riekiFixedTableSection');
   if(fel){
@@ -901,12 +916,19 @@ function renderRiekiPage(){
     const diffTotal=Math.round((fixedTotal-jinkenTotal)*100)/100;
     const diffColor=diffTotal>=0?'color:var(--green)':'color:var(--red)';
     html+=`<td style="${diffColor}">${diffTotal>=0?'+':''}${diffTotal.toFixed(1)}</td></tr>`;
-    // 人件費率行（人件費÷売上）
-    html+=`<tr><td style="color:var(--text);font-weight:700;">人件費率</td>`;
+    // 人件費率（対売上）行
+    html+=`<tr><td style="color:var(--text);font-weight:700;">人件費率（対売上）</td>`;
     months.forEach(m=>{const s=Math.round(sum(salesByMonth[m]||[],'amt')*100)/100;const j=Math.round(sum(jinkenByMonth[m]||[],'amt')*100)/100;const r=s>0?Math.round(j/s*1000)/10:null;const c=r!==null?(r<=30?'color:var(--green)':'color:var(--amber)'):'';html+=r!==null?`<td style="${c}">${r.toFixed(1)}%</td>`:`<td class="zero">-</td>`;});
     const totalRate=salesAllTotal>0?Math.round(jinkenTotal/salesAllTotal*1000)/10:null;
     const totalRateColor=totalRate!==null?(totalRate<=30?'color:var(--green)':'color:var(--amber)'):'';
     html+=totalRate!==null?`<td style="${totalRateColor}">${totalRate.toFixed(1)}%</td>`:`<td class="zero">-</td>`;
+    html+=`</tr>`;
+    // 人件費率（対固定費売上）行
+    html+=`<tr><td style="color:var(--text);font-weight:700;">人件費率（対固定費売上）</td>`;
+    months.forEach(m=>{const f=Math.round(sum(fixedSalesByMonth[m]||[],'amt')*100)/100;const j=Math.round(sum(jinkenByMonth[m]||[],'amt')*100)/100;const r=f>0?Math.round(j/f*1000)/10:null;const c=r===null?'':(r<80?'color:var(--green)':r<=100?'color:var(--amber)':'color:var(--red)');html+=r!==null?`<td style="${c}">${r.toFixed(1)}%</td>`:`<td class="zero">-</td>`;});
+    const fixedRate=fixedTotal>0?Math.round(jinkenTotal/fixedTotal*1000)/10:null;
+    const fixedRateColor=fixedRate===null?'':(fixedRate<80?'color:var(--green)':fixedRate<=100?'color:var(--amber)':'color:var(--red)');
+    html+=fixedRate!==null?`<td style="${fixedRateColor}">${fixedRate.toFixed(1)}%</td>`:`<td class="zero">-</td>`;
     html+=`</tr></tbody></table><p style="font-size:10px;color:var(--dim);margin-top:6px;">※現状は部門コストの人件費のみ計上（社員人件費はあとで追加）</p>`;
     fel.innerHTML=html;
   }
