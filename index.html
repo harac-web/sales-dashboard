@@ -611,11 +611,10 @@ function renderCostPage(data, pageId, pageTitle){
   const stKey=pageId==='bumon'?'costSt':'corpoSt';
   const divKey=pageId==='bumon'?'costDiv':'corpoDiv';
   const tmKey=pageId==='bumon'?'costTm':'corpoTm';
-  const view=F[viewKey]||'all';
   const viewFields={all:'大分類',div:'Div名',tm:'TM'};
-  const viewLabels={all:'全体',div:'Div',tm:'TM'};
-  const sfField=viewFields[view];
   const salesFieldMap={all:'cat',div:'div',tm:'tm'};
+  const view=pageId==='bumon'?(F[tmKey]!=='all'?'tm':F[divKey]!=='all'?'div':'all'):(F[viewKey]||'all');
+  const sfField=viewFields[view];
   const salesField=salesFieldMap[view];
 
   // 期→月範囲マッピング（rawDataから生成）
@@ -687,8 +686,7 @@ function renderCostPage(data, pageId, pageTitle){
   // コスト明細テーブル
   const el=document.getElementById(`${pageId}TableSection`);
   if(el){
-    const viewToggle=pageId==='corpo'?'':(`<span style="display:inline-flex;align-items:center;gap:5px;margin-left:16px;vertical-align:middle;background:rgba(99,102,241,.08);border:2px solid rgba(99,102,241,.6);border-radius:10px;padding:4px 10px;"><span style="color:#fff;font-size:11px;font-weight:700;white-space:nowrap;">表示形式:</span>${Object.entries(viewLabels).map(([k,l])=>`<button class="chip ${view===k?'active':''}" style="padding:3px 10px;font-size:11px;" onclick="F['${viewKey}']='${k}';render();">${l}</button>`).join('')}</span>`);
-    let html=`<h2 style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;">月別コストデータ（万円）${viewToggle}</h2><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>${sfField}</th>`;
+    let html=`<h2 style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;">月別コストデータ（万円）</h2><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>${sfField}</th>`;
     months.forEach(m=>{html+=`<th>${m}</th>`;});
     html+=`<th>合計</th></tr></thead><tbody>`;
     const deepView=view==='div'||view==='tm';
