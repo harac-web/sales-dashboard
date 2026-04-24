@@ -679,7 +679,7 @@ function renderCostPage(data, pageId, pageTitle){
   // コスト明細テーブル
   const el=document.getElementById(`${pageId}TableSection`);
   if(el){
-    const viewToggle=`<span style="display:inline-flex;align-items:center;gap:5px;margin-left:16px;vertical-align:middle;background:rgba(99,102,241,.08);border:2px solid rgba(99,102,241,.6);border-radius:10px;padding:4px 10px;"><span style="color:#fff;font-size:11px;font-weight:700;white-space:nowrap;">表示形式:</span>${Object.entries(viewLabels).map(([k,l])=>`<button class="chip ${view===k?'active':''}" style="padding:3px 10px;font-size:11px;" onclick="F['${viewKey}']='${k}';render();">${l}</button>`).join('')}</span>`;
+    const viewToggle=pageId==='corpo'?'':(`<span style="display:inline-flex;align-items:center;gap:5px;margin-left:16px;vertical-align:middle;background:rgba(99,102,241,.08);border:2px solid rgba(99,102,241,.6);border-radius:10px;padding:4px 10px;"><span style="color:#fff;font-size:11px;font-weight:700;white-space:nowrap;">表示形式:</span>${Object.entries(viewLabels).map(([k,l])=>`<button class="chip ${view===k?'active':''}" style="padding:3px 10px;font-size:11px;" onclick="F['${viewKey}']='${k}';render();">${l}</button>`).join('')}</span>`);
     let html=`<h2 style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;">月別コストデータ（万円）${viewToggle}</h2><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>${sfField}</th>`;
     months.forEach(m=>{html+=`<th>${m}</th>`;});
     html+=`<th>合計</th></tr></thead><tbody>`;
@@ -929,7 +929,7 @@ function renderRiekiPage(){
     const fixedRate=fixedTotal>0?Math.round(jinkenTotal/fixedTotal*1000)/10:null;
     const fixedRateColor=fixedRate===null?'':(fixedRate<80?'color:var(--green)':fixedRate<=100?'color:var(--amber)':'color:var(--red)');
     html+=fixedRate!==null?`<td style="${fixedRateColor}">${fixedRate.toFixed(1)}%</td>`:`<td class="zero">-</td>`;
-    html+=`</tr></tbody></table><p style="font-size:10px;color:var(--dim);margin-top:6px;">※現状は部門コストの人件費のみ計上（社員人件費はあとで追加）</p>`;
+    html+=`</tr></tbody></table><p style="font-size:14px;color:var(--text);margin-top:10px;font-weight:600;">※現状は部門コストの人件費のみ計上（社員人件費はあとで追加）</p>`;
     fel.innerHTML=html;
   }
 }
@@ -1506,12 +1506,17 @@ function updateSidebar(){
       ${sl('大分類',F.whoCat.length>0,"clearMulti('whoCat')")}${multiChipsHtml('whoCat',cats)}
       ${sl('Div',F.whoDiv!=='all',"setFilter('whoDiv','all')")}${chipsHtml('whoDiv',divs)}
       <button class="btn" style="margin-top:10px;font-size:10px;padding:4px 12px;width:100%;" onclick="resetWhoFilters()">すべてリセット</button>`;
-  } else if(F.page==='bumon'||F.page==='corpo'||F.page==='rieki'){
-    const pageData=F.page==='corpo'?corpoCostData:costData;
-    const kiKey=F.page==='bumon'?'costKi':F.page==='corpo'?'corpoKi':'riekiKi';
-    const stKey=F.page==='bumon'?'costSt':F.page==='corpo'?'corpoSt':'riekiSt';
-    const divKey=F.page==='bumon'?'costDiv':F.page==='corpo'?'corpoDiv':'riekiDiv';
-    const tmKey=F.page==='bumon'?'costTm':F.page==='corpo'?'corpoTm':'riekiTm';
+  } else if(F.page==='corpo'){
+    const costChip=(key,vals)=>{let h=`<button class="chip chip-all ${F[key]==='all'?'active':''}" onclick="setFilter('${key}','all')">すべて</button>`;vals.forEach(v=>{h+=`<button class="chip ${F[key]===v?'active':''}" onclick="setFilter('${key}','${esc(v)}')">${v}</button>`;});return h;};
+    html+=`
+      ${sl('期',F.corpoKi!=='all',"setFilter('corpoKi','all')")}${costChip('corpoKi',kis)}
+      <button class="btn" style="margin-top:10px;font-size:10px;padding:4px 12px;width:100%;" onclick="setFilter('corpoKi','all')">リセット</button>`;
+  } else if(F.page==='bumon'||F.page==='rieki'){
+    const pageData=costData;
+    const kiKey=F.page==='bumon'?'costKi':'riekiKi';
+    const stKey=F.page==='bumon'?'costSt':'riekiSt';
+    const divKey=F.page==='bumon'?'costDiv':'riekiDiv';
+    const tmKey=F.page==='bumon'?'costTm':'riekiTm';
     const divs=unique(pageData.map(r=>r['Div名'])).filter(Boolean);
     const tms=tmSort(unique(pageData.map(r=>r['TM'])).filter(Boolean));
     const costChip=(key,vals)=>{let h=`<button class="chip chip-all ${F[key]==='all'?'active':''}" onclick="setFilter('${key}','all')">すべて</button>`;vals.forEach(v=>{h+=`<button class="chip ${F[key]===v?'active':''}" onclick="setFilter('${key}','${esc(v)}')">${v}</button>`;});return h;};
