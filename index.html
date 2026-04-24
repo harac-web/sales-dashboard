@@ -746,14 +746,9 @@ function renderCostPage(data, pageId, pageTitle){
     const divMonths=[...new Map(kiFiltered.map(r=>[r.monthLabel,r.monthSort])).entries()].sort((a,b)=>a[1]-b[1]).map(e=>e[0]);
     const divs2=unique(kiFiltered.map(r=>r['Div名'])).filter(Boolean).sort();
     const byMonthAll=groupBy(kiFiltered,'monthLabel');
-    let h2=`<h2>月別コスト：Div内訳（万円）</h2><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Div名</th>`;
+    let h2=`<div class="chart-title">月別コスト：Div内訳（万円）</div><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Div名</th>`;
     divMonths.forEach(m=>{h2+=`<th>${m}</th>`;});
     h2+=`<th>合計</th></tr></thead><tbody>`;
-    // 全体行
-    let gTotal=0;
-    h2+=`<tr><td style="color:var(--text);font-weight:700;">全体</td>`;
-    divMonths.forEach(m=>{const v=Math.round(sum(byMonthAll[m]||[],'amt')*100)/100;gTotal+=v;h2+=v>0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
-    h2+=`<td>${gTotal.toFixed(1)}</td></tr>`;
     // Div行
     divs2.forEach((d,i)=>{
       const dFiltered=kiFiltered.filter(r=>r['Div名']===d);
@@ -770,6 +765,11 @@ function renderCostPage(data, pageId, pageTitle){
         h2+=`<td>${tTotal.toFixed(1)}</td></tr>`;
       });
     });
+    // 合計行（青色）
+    let gTotal=0;
+    h2+=`<tr class="total-row"><td>合計</td>`;
+    divMonths.forEach(m=>{const v=Math.round(sum(byMonthAll[m]||[],'amt')*100)/100;gTotal+=v;h2+=`<td>${v.toFixed(1)}</td>`;});
+    h2+=`<td>${gTotal.toFixed(1)}</td></tr>`;
     h2+=`</tbody></table></div>`;
     divEl.innerHTML=h2;
   }
