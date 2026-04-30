@@ -1039,67 +1039,60 @@ function renderSeikyuuPage(){
 
   const el=document.getElementById('seikyuuTableSection');
   if(el){
-    // 月別立替費合計（サブカテゴリ2件の合算）
-    const tatekaeByMonth=months.map(m=>Math.round(sum((byMonthTatekae[m]||[]).filter(r=>subCats.includes(r.cat)),'amt')*100)/100);
+    const CAT_KOUKOKU='広告運用費（立替費のみ）';
+    const CAT_PURIPA='プリパ印刷・交通費等（内税）';
+    // 外税3項目
+    const koukokuByMonth=months.map(m=>Math.round(sum((byMonthTatekae[m]||[]).filter(r=>r.cat===CAT_KOUKOKU),'amt')*100)/100);
     const kyoekiByMonth=months.map(m=>Math.round(sum(byMonthKyoeki[m]||[],'amt')*100)/100);
     const costByMonth=months.map(m=>Math.round(sum(byMonthCost[m]||[],'amt')*100)/100);
+    // 内税項目
+    const puripaByMonth=months.map(m=>Math.round(sum((byMonthTatekae[m]||[]).filter(r=>r.cat===CAT_PURIPA),'amt')*100)/100);
+
+    const koukokuTotal=Math.round(koukokuByMonth.reduce((s,v)=>s+v,0)*100)/100;
+    const kyoekiTotal=Math.round(kyoekiByMonth.reduce((s,v)=>s+v,0)*100)/100;
+    const costTotal=Math.round(costByMonth.reduce((s,v)=>s+v,0)*100)/100;
+    const puripaTotal=Math.round(puripaByMonth.reduce((s,v)=>s+v,0)*100)/100;
 
     let html=`<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th></th>`;
     months.forEach(m=>{html+=`<th>${m}</th>`;});
     html+=`<th>合計</th></tr></thead><tbody>`;
 
-    // 立替費（税抜）行
-    const tatekaeTotal=Math.round(tatekaeByMonth.reduce((s,v)=>s+v,0)*100)/100;
-    html+=`<tr><td style="color:var(--text);font-weight:700;white-space:nowrap;">立替費（税抜）</td>`;
-    tatekaeByMonth.forEach(v=>{html+=v!==0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
-    html+=`<td>${tatekaeTotal.toFixed(1)}</td></tr>`;
-
-    // 立替費サブ行（常時表示・└スタイル）
-    subCats.forEach(cat=>{
-      let subTotal=0;
-      html+=`<tr><td style="padding-left:20px;color:var(--muted);font-size:11px;white-space:nowrap;">└ ${cat}</td>`;
-      months.forEach(m=>{const v=Math.round(sum((byMonthTatekae[m]||[]).filter(r=>r.cat===cat),'amt')*100)/100;subTotal=Math.round((subTotal+v)*100)/100;html+=v!==0?`<td style="color:var(--muted);font-size:11px;">${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
-      html+=`<td style="color:var(--muted);font-size:11px;">${subTotal.toFixed(1)}</td></tr>`;
-    });
+    // 広告運用費（立替費のみ）行
+    html+=`<tr><td style="color:var(--text);font-weight:700;white-space:nowrap;">広告運用費（立替費のみ）</td>`;
+    koukokuByMonth.forEach(v=>{html+=v!==0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+    html+=`<td>${koukokuTotal.toFixed(1)}</td></tr>`;
 
     // 共益費等（税抜）行
-    const kyoekiTotal=Math.round(kyoekiByMonth.reduce((s,v)=>s+v,0)*100)/100;
     html+=`<tr><td style="color:var(--text);font-weight:700;white-space:nowrap;">共益費等（税抜）</td>`;
     kyoekiByMonth.forEach(v=>{html+=v!==0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
     html+=`<td>${kyoekiTotal.toFixed(1)}</td></tr>`;
 
     // 請求書支払い額（税抜）行
-    const costTotal=Math.round(costByMonth.reduce((s,v)=>s+v,0)*100)/100;
     html+=`<tr><td style="color:var(--text);font-weight:700;white-space:nowrap;">請求書支払い額（税抜）</td>`;
     costByMonth.forEach(v=>{html+=v!==0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
     html+=`<td>${costTotal.toFixed(1)}</td></tr>`;
 
     // 小計（税抜）行
-    const grandTotal=Math.round((tatekaeTotal+kyoekiTotal+costTotal)*100)/100;
+    const subtotal=Math.round((koukokuTotal+kyoekiTotal+costTotal)*100)/100;
     html+=`<tr style="border-top:1px solid var(--border);"><td style="color:var(--muted);font-weight:700;white-space:nowrap;font-size:11px;">小計（税抜）</td>`;
-    months.forEach((_,idx)=>{
-      const v=Math.round((tatekaeByMonth[idx]+kyoekiByMonth[idx]+costByMonth[idx])*100)/100;
-      html+=`<td style="color:var(--muted);font-size:11px;">${v.toFixed(1)}</td>`;
-    });
-    html+=`<td style="color:var(--muted);font-size:11px;">${grandTotal.toFixed(1)}</td></tr>`;
+    months.forEach((_,idx)=>{const v=Math.round((koukokuByMonth[idx]+kyoekiByMonth[idx]+costByMonth[idx])*100)/100;html+=`<td style="color:var(--muted);font-size:11px;">${v.toFixed(1)}</td>`;});
+    html+=`<td style="color:var(--muted);font-size:11px;">${subtotal.toFixed(1)}</td></tr>`;
 
     // 消費税額行
     let taxTotal=0;
     html+=`<tr><td style="color:var(--muted);font-weight:700;white-space:nowrap;font-size:11px;">消費税額</td>`;
-    months.forEach((_,idx)=>{
-      const t=Math.round((tatekaeByMonth[idx]+kyoekiByMonth[idx]+costByMonth[idx])*0.1*100)/100;
-      taxTotal=Math.round((taxTotal+t)*100)/100;
-      html+=t!==0?`<td style="color:var(--muted);font-size:11px;">${t.toFixed(1)}</td>`:`<td class="zero">-</td>`;
-    });
+    months.forEach((_,idx)=>{const t=Math.round((koukokuByMonth[idx]+kyoekiByMonth[idx]+costByMonth[idx])*0.1*100)/100;taxTotal=Math.round((taxTotal+t)*100)/100;html+=t!==0?`<td style="color:var(--muted);font-size:11px;">${t.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
     html+=`<td style="color:var(--muted);font-size:11px;">${taxTotal.toFixed(1)}</td></tr>`;
 
-    // 合計（税込）行（青色）
-    const grandTotalTax=Math.round((grandTotal+taxTotal)*100)/100;
+    // プリパ印刷（内税）行
+    html+=`<tr><td style="color:var(--text);font-weight:700;white-space:nowrap;">プリパ印刷・交通費等（内税）</td>`;
+    puripaByMonth.forEach(v=>{html+=v!==0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+    html+=`<td>${puripaTotal.toFixed(1)}</td></tr>`;
+
+    // 合計（税込）行（青色）= 小計+消費税+内税項目
+    const grandTotalTax=Math.round((subtotal+taxTotal+puripaTotal)*100)/100;
     html+=`<tr class="total-row"><td style="white-space:nowrap;">合計（税込）</td>`;
-    months.forEach((_,idx)=>{
-      const v=Math.round((tatekaeByMonth[idx]+kyoekiByMonth[idx]+costByMonth[idx])*1.1*100)/100;
-      html+=`<td>${v.toFixed(1)}</td>`;
-    });
+    months.forEach((_,idx)=>{const v=Math.round((koukokuByMonth[idx]+kyoekiByMonth[idx]+costByMonth[idx])*1.1*100)/100+puripaByMonth[idx];html+=`<td>${Math.round(v*100)/100 .toFixed(1)}</td>`;});
     html+=`<td>${grandTotalTax.toFixed(1)}</td></tr>`;
 
     html+=`</tbody></table></div>`;
