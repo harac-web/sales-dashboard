@@ -1048,18 +1048,18 @@ function renderSeikyuuPage(){
     months.forEach(m=>{html+=`<th>${m}</th>`;});
     html+=`<th>合計</th></tr></thead><tbody>`;
 
-    // 立替費（税抜）行（展開可）
+    // 立替費（税抜）行
     const tatekaeTotal=Math.round(tatekaeByMonth.reduce((s,v)=>s+v,0)*100)/100;
-    html+=`<tr id="tatekae-row" class="cat-row" onclick="toggleTatekaeRows()"><td style="color:var(--text);font-weight:700;white-space:nowrap;"><span class="expand-icon">▶</span>立替費（税抜）</td>`;
+    html+=`<tr><td style="color:var(--text);font-weight:700;white-space:nowrap;">立替費（税抜）</td>`;
     tatekaeByMonth.forEach(v=>{html+=v!==0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
     html+=`<td>${tatekaeTotal.toFixed(1)}</td></tr>`;
 
-    // 立替費サブ行
+    // 立替費サブ行（常時表示・└スタイル）
     subCats.forEach(cat=>{
       let subTotal=0;
-      html+=`<tr class="prod-row tatekae-sub" style="display:none;"><td style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;white-space:nowrap;">${cat}</td>`;
-      months.forEach(m=>{const v=Math.round(sum((byMonthTatekae[m]||[]).filter(r=>r.cat===cat),'amt')*100)/100;subTotal=Math.round((subTotal+v)*100)/100;html+=v!==0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
-      html+=`<td>${subTotal.toFixed(1)}</td></tr>`;
+      html+=`<tr><td style="padding-left:20px;color:var(--muted);font-size:11px;white-space:nowrap;">└ ${cat}</td>`;
+      months.forEach(m=>{const v=Math.round(sum((byMonthTatekae[m]||[]).filter(r=>r.cat===cat),'amt')*100)/100;subTotal=Math.round((subTotal+v)*100)/100;html+=v!==0?`<td style="color:var(--muted);font-size:11px;">${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+      html+=`<td style="color:var(--muted);font-size:11px;">${subTotal.toFixed(1)}</td></tr>`;
     });
 
     // 共益費等（税抜）行
