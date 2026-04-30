@@ -1074,14 +1074,14 @@ function renderSeikyuuPage(){
     costByMonth.forEach(v=>{html+=v!==0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
     html+=`<td>${costTotal.toFixed(1)}</td></tr>`;
 
-    // 合計（税抜）行（青色）
+    // 小計（税抜）行
     const grandTotal=Math.round((tatekaeTotal+kyoekiTotal+costTotal)*100)/100;
-    html+=`<tr class="total-row"><td style="white-space:nowrap;">合計（税抜）</td>`;
+    html+=`<tr style="border-top:1px solid var(--border);"><td style="color:var(--muted);font-weight:700;white-space:nowrap;font-size:11px;">小計（税抜）</td>`;
     months.forEach((_,idx)=>{
       const v=Math.round((tatekaeByMonth[idx]+kyoekiByMonth[idx]+costByMonth[idx])*100)/100;
-      html+=`<td>${v.toFixed(1)}</td>`;
+      html+=`<td style="color:var(--muted);font-size:11px;">${v.toFixed(1)}</td>`;
     });
-    html+=`<td>${grandTotal.toFixed(1)}</td></tr>`;
+    html+=`<td style="color:var(--muted);font-size:11px;">${grandTotal.toFixed(1)}</td></tr>`;
 
     // 消費税額行
     let taxTotal=0;
