@@ -1085,13 +1085,13 @@ function renderSeikyuuPage(){
 
     // 消費税額行
     let taxTotal=0;
-    html+=`<tr><td style="color:var(--text);font-weight:700;white-space:nowrap;">消費税額</td>`;
+    html+=`<tr><td style="color:var(--muted);font-weight:700;white-space:nowrap;font-size:11px;">消費税額</td>`;
     months.forEach((_,idx)=>{
       const t=Math.round((tatekaeByMonth[idx]+kyoekiByMonth[idx]+costByMonth[idx])*0.1*100)/100;
       taxTotal=Math.round((taxTotal+t)*100)/100;
-      html+=t!==0?`<td>${t.toFixed(1)}</td>`:`<td class="zero">-</td>`;
+      html+=t!==0?`<td style="color:var(--muted);font-size:11px;">${t.toFixed(1)}</td>`:`<td class="zero">-</td>`;
     });
-    html+=`<td>${taxTotal.toFixed(1)}</td></tr>`;
+    html+=`<td style="color:var(--muted);font-size:11px;">${taxTotal.toFixed(1)}</td></tr>`;
 
     // 合計（税込）行（青色）
     const grandTotalTax=Math.round((grandTotal+taxTotal)*100)/100;
