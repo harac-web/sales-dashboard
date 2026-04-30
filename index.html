@@ -1084,6 +1084,15 @@ function renderSeikyuuPage(){
     });
     html+=`<td style="font-weight:800;">${taxTotal.toFixed(1)}</td></tr>`;
 
+    // 合計行（青色）
+    html+=`<tr class="total-row"><td style="white-space:nowrap;">合計（税抜）</td>`;
+    months.forEach((_,idx)=>{
+      const v=Math.round((tatekaeByMonth[idx]+kyoekiByMonth[idx]+costByMonth[idx])*100)/100;
+      html+=`<td>${v.toFixed(1)}</td>`;
+    });
+    const grandTotal=Math.round((tatekaeTotal+kyoekiTotal+costTotal)*100)/100;
+    html+=`<td>${grandTotal.toFixed(1)}</td></tr>`;
+
     html+=`</tbody></table></div>`;
     el.innerHTML=html;
   }
