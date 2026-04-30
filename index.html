@@ -1039,8 +1039,8 @@ function renderSeikyuuPage(){
 
   const el=document.getElementById('seikyuuTableSection');
   if(el){
-    // 月別立替費合計（消費税計算用）
-    const tatekaeByMonth=months.map(m=>Math.round(sum(byMonthTatekae[m]||[],'amt')*100)/100);
+    // 月別立替費合計（サブカテゴリ2件の合算）
+    const tatekaeByMonth=months.map(m=>Math.round(sum((byMonthTatekae[m]||[]).filter(r=>subCats.includes(r.cat)),'amt')*100)/100);
     const kyoekiByMonth=months.map(m=>Math.round(sum(byMonthKyoeki[m]||[],'amt')*100)/100);
     const costByMonth=months.map(m=>Math.round(sum(byMonthCost[m]||[],'amt')*100)/100);
 
