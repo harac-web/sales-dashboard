@@ -1074,24 +1074,33 @@ function renderSeikyuuPage(){
     costByMonth.forEach(v=>{html+=v!==0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
     html+=`<td>${costTotal.toFixed(1)}</td></tr>`;
 
-    // 消費税額行
-    let taxTotal=0;
-    html+=`<tr><td style="color:var(--text);font-weight:800;white-space:nowrap;">消費税額</td>`;
-    months.forEach((_,idx)=>{
-      const t=Math.round((tatekaeByMonth[idx]+kyoekiByMonth[idx]+costByMonth[idx])*0.1*100)/100;
-      taxTotal=Math.round((taxTotal+t)*100)/100;
-      html+=t!==0?`<td style="font-weight:700;">${t.toFixed(1)}</td>`:`<td class="zero">-</td>`;
-    });
-    html+=`<td style="font-weight:800;">${taxTotal.toFixed(1)}</td></tr>`;
-
-    // 合計行（青色）
+    // 合計（税抜）行（青色）
+    const grandTotal=Math.round((tatekaeTotal+kyoekiTotal+costTotal)*100)/100;
     html+=`<tr class="total-row"><td style="white-space:nowrap;">合計（税抜）</td>`;
     months.forEach((_,idx)=>{
       const v=Math.round((tatekaeByMonth[idx]+kyoekiByMonth[idx]+costByMonth[idx])*100)/100;
       html+=`<td>${v.toFixed(1)}</td>`;
     });
-    const grandTotal=Math.round((tatekaeTotal+kyoekiTotal+costTotal)*100)/100;
     html+=`<td>${grandTotal.toFixed(1)}</td></tr>`;
+
+    // 消費税額行
+    let taxTotal=0;
+    html+=`<tr><td style="color:var(--text);font-weight:700;white-space:nowrap;">消費税額</td>`;
+    months.forEach((_,idx)=>{
+      const t=Math.round((tatekaeByMonth[idx]+kyoekiByMonth[idx]+costByMonth[idx])*0.1*100)/100;
+      taxTotal=Math.round((taxTotal+t)*100)/100;
+      html+=t!==0?`<td>${t.toFixed(1)}</td>`:`<td class="zero">-</td>`;
+    });
+    html+=`<td>${taxTotal.toFixed(1)}</td></tr>`;
+
+    // 合計（税込）行（青色）
+    const grandTotalTax=Math.round((grandTotal+taxTotal)*100)/100;
+    html+=`<tr class="total-row"><td style="white-space:nowrap;">合計（税込）</td>`;
+    months.forEach((_,idx)=>{
+      const v=Math.round((tatekaeByMonth[idx]+kyoekiByMonth[idx]+costByMonth[idx])*1.1*100)/100;
+      html+=`<td>${v.toFixed(1)}</td>`;
+    });
+    html+=`<td>${grandTotalTax.toFixed(1)}</td></tr>`;
 
     html+=`</tbody></table></div>`;
     el.innerHTML=html;
