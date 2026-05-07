@@ -659,6 +659,7 @@ function renderCostPage(data, pageId, pageTitle){
   const totalProfit=Math.round((totalSales-totalCost)*100)/100;
   const profitRate=totalSales>0?Math.round(totalProfit/totalSales*1000)/10:0;
 
+  const formatCostCategoryLabel=v=>v==='人件費'?'人件費（インターン・外注）':v;
   const updStr=meta.updated?new Date(meta.updated).toLocaleString('ja-JP'):'-';
   const fmtAmt=v=>Math.abs(v)>=10000?`${(v/10000).toFixed(2)}億円`:`${v.toFixed(0)}万円`;
   const profitColor=totalProfit>=0?'var(--green)':'var(--red)';
@@ -685,7 +686,7 @@ function renderCostPage(data, pageId, pageTitle){
   const canvas=document.getElementById(`${pageId}Chart`);
   if(charts[pageId])charts[pageId].destroy();
   if(canvas){
-    const ds=vs.map(({v},i)=>({label:v,backgroundColor:COLORS[i%COLORS.length],data:months.map(m=>Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v),'amt')*100)/100)}));
+    const ds=vs.map(({v},i)=>({label:formatCostCategoryLabel(v),backgroundColor:COLORS[i%COLORS.length],data:months.map(m=>Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v),'amt')*100)/100)}));
     charts[pageId]=new Chart(canvas,{type:'bar',data:{labels:months,datasets:ds},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{color:'#94a3b8',font:{size:10}}},y:{stacked:true,ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'万'}}},plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{return`合計: ${items.reduce((s,i)=>s+i.raw,0).toFixed(1)}万円`;}}}}}});
   }
 
@@ -698,7 +699,7 @@ function renderCostPage(data, pageId, pageTitle){
     const deepView=view==='div'||view==='tm';
     vs.forEach(({v},i)=>{
       let rowTotal=0;
-      html+=`<tr id="cat-row-${i}" class="cat-row${deepView?' expanded':''}" onclick="toggleProdRows(${i})"><td title="${v}" style="color:var(--text);font-weight:700;"><span class="expand-icon">▶</span>${v}</td>`;
+      html+=`<tr id="cat-row-${i}" class="cat-row${deepView?' expanded':''}" onclick="toggleProdRows(${i})"><td title="${formatCostCategoryLabel(v)}" style="color:var(--text);font-weight:700;"><span class="expand-icon">▶</span>${formatCostCategoryLabel(v)}</td>`;
       months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v),'amt')*100)/100;rowTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
       html+=`<td>${rowTotal.toFixed(1)}</td></tr>`;
       if(deepView){
