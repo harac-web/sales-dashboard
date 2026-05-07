@@ -192,7 +192,12 @@ async function fetchData(){
     const mSet=new Map();rawData.forEach(r=>{if(r.month&&r.monthSort)mSet.set(r.month,r.monthSort);});
     allMonths=[...mSet.entries()].sort((a,b)=>a[1]-b[1]).map(e=>({label:e[0],sort:e[1]}));
     WHO_ORDER=[...new Set(rawData.map(r=>r.who))].filter(Boolean);
-    const normCost=r=>{const pm=parseMonth(r['年月']);return{...r,monthLabel:pm?pm.label:'',monthSort:pm?pm.sort:0,amt:(parseFloat(r['金額（税別）'])||0)/10000};};
+    const normCost=r=>{
+      const pm=parseMonth(r['年月']);
+      const rawAmt=parseFloat(r['金額（税別）'])||0;
+      const amt=r.sheetSource==='employee'?rawAmt:rawAmt/10000;
+      return{...r,monthLabel:pm?pm.label:'',monthSort:pm?pm.sort:0,amt};
+    };
     costData=(json.costData||[]).map(normCost).filter(r=>r.monthLabel);
     corpoCostData=(json.corpoCostData||[]).map(normCost).filter(r=>r.monthLabel);
     seikyuuData=(json.seikyuuData||[]).map(r=>{const pm=parseMonth(r.month);return{...r,monthLabel:pm?pm.label:'',monthSort:pm?pm.sort:0,amt:(parseFloat(r.amt)||0)/10000,rowIndex:parseInt(r.rowIndex)||0};}).filter(r=>r.monthLabel);
