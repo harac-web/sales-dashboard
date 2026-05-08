@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ヨミクエリ 売上ダッシュボード</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async></script>
   <style>
     :root{--bg:#0f172a;--surface:#1e293b;--border:#334155;--text:#f1f5f9;--muted:#94a3b8;--dim:#64748b;--accent:#6366f1;--green:#10b981;--amber:#f59e0b;--red:#ef4444;}
@@ -94,6 +95,50 @@
     ::-webkit-scrollbar-track{background:transparent;}
     ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
     ::-webkit-scrollbar-thumb:hover{background:var(--dim);}
+    /* Kari (borrowing) styles */
+    .kari-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+    .kari-kpi{background:#1a2f4a;border:1px solid #1e3a5f;border-radius:10px;padding:13px 15px;}
+    .kari-kpi-lbl{font-size:10px;color:#94a3b8;margin-bottom:5px;line-height:1.4;}
+    .kari-kpi-val{font-size:21px;font-weight:600;color:#e2e8f0;}
+    .kari-kpi-sub{font-size:10px;color:#64748b;margin-top:4px;}
+    .kari-red{color:#f87171!important;}
+    .kari-yellow{color:#fbbf24!important;}
+    .kari-card{background:#1a2f4a;border:1px solid #1e3a5f;border-radius:10px;padding:16px 18px;margin-bottom:14px;}
+    .kari-card-title{font-size:12px;font-weight:500;color:#cbd5e1;margin-bottom:14px;}
+    .kari-chart-wrap{position:relative;}
+    .kari-tbl-wrap{overflow-x:auto;}
+    .kari-tbl-wrap-sticky{overflow:auto;max-height:320px;}
+    .kari-tbl-wrap-sticky th{position:sticky;top:0;z-index:2;}
+    .kari-tbl-wrap-sticky tfoot td{position:sticky;bottom:0;z-index:2;}
+    .kari-content table{width:100%;border-collapse:collapse;font-size:11px;}
+    .kari-content th{background:#162840;color:#94a3b8;font-weight:500;padding:6px 10px;text-align:left;border-bottom:1px solid #1e3a5f;white-space:nowrap;}
+    .kari-content td{padding:6px 10px;border-bottom:1px solid rgba(30,58,95,.4);color:#e2e8f0;white-space:nowrap;}
+    .kari-content tr:hover td{background:#162840;}
+    .kari-content .kari-r{text-align:right;}
+    .kari-content tfoot td{background:#162840;font-weight:600;color:#93c5fd;}
+    .kari-sticky-col-1{position:sticky;left:0;z-index:1;background:#1a2f4a;border-right:1px solid #3b5a7a;}
+    .kari-sticky-col-2{position:sticky;left:120px;z-index:1;background:#1a2f4a;}
+    .kari-sticky-col-3{position:sticky;left:220px;z-index:1;background:#1a2f4a;border-right:1px solid #3b5a7a;}
+    .kari-content tr:hover .kari-sticky-col-1,.kari-content tr:hover .kari-sticky-col-2,.kari-content tr:hover .kari-sticky-col-3{background:#162840;}
+    .kari-content thead .kari-sticky-col-1,.kari-content thead .kari-sticky-col-2,.kari-content thead .kari-sticky-col-3{background:#162840;}
+    .kari-content tfoot .kari-sticky-col-1,.kari-content tfoot .kari-sticky-col-2,.kari-content tfoot .kari-sticky-col-3{background:#162840;}
+    .kari-progress-wrap{width:80px;background:rgba(30,58,95,.6);border-radius:4px;height:6px;display:inline-block;vertical-align:middle;}
+    .kari-progress-bar{height:6px;border-radius:4px;background:#3b82f6;}
+    .kari-progress-label{font-size:10px;color:#94a3b8;margin-left:5px;}
+    .kari-tab-bar{display:flex;gap:6px;padding:0 0 10px 0;flex-shrink:0;align-items:center;flex-wrap:wrap;margin-bottom:4px;}
+    .kari-tab-btn{padding:6px 16px;font-size:12px;color:#94a3b8;cursor:pointer;border-radius:20px;border:1.5px solid #2d4a6a;background:#162840;white-space:nowrap;transition:all .15s;}
+    .kari-tab-btn:hover{color:#e2e8f0;background:#1e3a5f;border-color:#3b82f6;}
+    .kari-tab-btn.active{background:#3b82f6;color:#fff;border-color:#3b82f6;font-weight:500;box-shadow:0 2px 8px rgba(59,130,246,.35);}
+    /* Kari sidebar elements */
+    .kari-s-ki select{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:11px;margin-bottom:4px;}
+    .kari-bank-list{display:flex;flex-direction:column;gap:2px;margin-top:4px;}
+    .kari-bank-item{display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:5px;cursor:pointer;}
+    .kari-bank-item:hover{background:var(--bg);}
+    .kari-bank-item input{accent-color:#3b82f6;width:13px;height:13px;flex-shrink:0;cursor:pointer;}
+    .kari-bank-item span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .kari-s-btn-row{display:flex;gap:5px;margin-bottom:6px;}
+    .kari-s-btn{flex:1;background:var(--bg);color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:3px 0;font-size:10px;cursor:pointer;text-align:center;}
+    .kari-s-btn:hover{color:var(--text);background:var(--border);}
     /* Who page */
     .two-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
     @media(max-width:900px){.two-charts{grid-template-columns:1fr;}}
@@ -150,7 +195,15 @@ const API_KEY="yomi-shukei-test";
 const COLORS=["#6366f1","#f59e0b","#10b981","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#06b6d4","#84cc16","#a855f7","#e11d48","#0ea5e9","#65a30d"];
 
 const GOOGLE_CLIENT_ID="706617013222-al13t67u32mcd2ao6dsn5hc97ldo4n11.apps.googleusercontent.com";
+const KARI_API_URL="https://script.google.com/macros/s/AKfycbz-gNuZzAMUNyCIWhf2-jGJbnA5tUbD5xOcJZeV-LxtbSFjdDCxnv0YB5WE-080j2oe/exec";
+const KARI_COLORS=["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4","#f97316","#ec4899"];
+const KI_BASE_YEAR=2025,KI_BASE_MONTH=7,KI_BASE_NUM=4;
+let currentToken=null;
 let allowedTabs=[], currentUser=null;
+let kariRaw=null;
+let kariF={tab:"balance",banks:[],kiFrom:null,kiTo:null};
+let kariChartInstances={};
+let kariTabScrollPos={balance:0,repay:0,interest:0,list:0,koza:0};
 let rawData=[], filteredData=[], allMonths=[], WHO_ORDER=[];
 function whoSort(vals){return[...vals].sort((a,b)=>{const ia=WHO_ORDER.indexOf(a),ib=WHO_ORDER.indexOf(b);if(ia===-1&&ib===-1)return a.localeCompare(b,"ja");if(ia===-1)return 1;if(ib===-1)return -1;return ia-ib;});}
 const TM_ORDER=["SNS_インスタ運用TM","SNS_動画TM","SNS_LINETM","AITM","広告TM","WebクリエイティブTM","WebサポートTM","開発TM","AIOTM","フロント"];
@@ -302,13 +355,14 @@ function monthSelectHtml(key,label){
 
 function pageTabsHtml(subtitle){
   if(!allowedTabs.includes(F.page))F.page=allowedTabs[0]||'main';
-  const tabDefs=[{id:'main',label:'売上'},{id:'cl',label:'CL情報'},{id:'bumon',label:'部門コスト'},{id:'corpo',label:'コーポレートコスト'},{id:'rieki',label:'利益関連'},{id:'seikyuu',label:'立替費'}].filter(t=>allowedTabs.includes(t.id));
+  const tabDefs=[{id:'main',label:'売上'},{id:'cl',label:'CL情報'},{id:'bumon',label:'部門コスト'},{id:'corpo',label:'コーポレートコスト'},{id:'rieki',label:'利益関連'},{id:'seikyuu',label:'立替費'},{id:'kari',label:'借入'}].filter(t=>allowedTabs.includes(t.id));
   const tabsHtml=tabDefs.map(t=>`<button class="page-tab ${F.page===t.id?'active':''}" onclick="F.page='${t.id}';render()">${t.label}</button>`).join('');
+  const updateFn=F.page==='kari'?'kariFetchData()':'fetchData()';
   return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
     <div class="page-tabs" style="margin-bottom:0;">${tabsHtml}</div>
     <div style="display:flex;align-items:center;gap:10px;">
       <div class="sub">${subtitle||""}</div>
-      <button class="btn" onclick="fetchData()">⟳ 更新</button>
+      <button class="btn" onclick="${updateFn}">⟳ 更新</button>
       <span style="font-size:11px;color:var(--dim);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${currentUser||""}</span>
       <button class="btn" onclick="logout()" style="color:var(--red);border-color:rgba(239,68,68,.3);">ログアウト</button>
     </div>
@@ -323,6 +377,7 @@ function salesTabsHtml(){
 
 function render(){
   applyFilters();
+  if(F.page==='kari'){renderKariPage();return;}
   if(F.page==='cl'){renderClPage();return;}
   if(F.page==='bumon'){renderCostPage(costData,'bumon','部門コスト');return;}
   if(F.page==='corpo'){renderCostPage(corpoCostData,'corpo','コーポレートコスト');return;}
@@ -1737,9 +1792,469 @@ function updateSidebar(){
         ${sl('期',F.tantoKi!=='all',"setFilter('tantoKi','all')")}${clChipsS('tantoKi',kis)}
         ${sl('計上月',F.tantoMonthFrom!=='all'||F.tantoMonthTo!=='all',"setFilter('tantoMonthFrom','all');setFilter('tantoMonthTo','all')")}${mth('tantoMonthFrom','tantoMonthTo')}`;
     }
+  } else if(F.page==='kari'){
+    if(kariRaw){
+      const banks=Object.keys(kariRaw.balance.banks).filter(b=>b!=='合計');
+      const kiSet=new Set();
+      kariRaw.balance.months.filter(Boolean).forEach(m=>{const k=kariGetKiFromYM(m);if(k!==null)kiSet.add(k);});
+      const karis=[...kiSet].sort((a,b)=>a-b);
+      const kOptsFrom=karis.map(k=>`<option value="${k}"${kariF.kiFrom===k?' selected':''}>${k}期</option>`).join('');
+      const kOptsTo=karis.map(k=>`<option value="${k}"${kariF.kiTo===k?' selected':''}>${k}期</option>`).join('');
+      const bankItems=banks.map(b=>`<label class="kari-bank-item"><input type="checkbox"${kariF.banks.includes(b)?' checked':''} value="${b}" onchange="kariToggleBank(this.value,this.checked)"><span title="${b}">${b}</span></label>`).join('');
+      html+=`
+        ${sl('表示期間',false,'')}
+        <div class="kari-s-ki">
+          <select id="kariSelKiFrom" onchange="kariApplyFilter()">${kOptsFrom}</select>
+          <div style="color:var(--dim);font-size:11px;text-align:center;margin:2px 0;">〜</div>
+          <select id="kariSelKiTo" onchange="kariApplyFilter()">${kOptsTo}</select>
+        </div>
+        ${sl('銀行',kariF.banks.length<banks.length,"kariSelectAllBanks(true)")}
+        <div class="kari-s-btn-row">
+          <div class="kari-s-btn" onclick="kariSelectAllBanks(true)">全選択</div>
+          <div class="kari-s-btn" onclick="kariSelectAllBanks(false)">全解除</div>
+        </div>
+        <div class="kari-bank-list" id="kariBankList">${bankItems}</div>`;
+    } else {
+      html+=`<div style="color:var(--dim);font-size:11px;padding:8px 0;">借入データ未取得</div>`;
+    }
   }
 
   el.innerHTML=html;
+}
+
+// ===== 借入ダッシュボード =====
+
+function kariGetKiRange(ki){
+  const offset=(ki-KI_BASE_NUM)*12;
+  const sm=KI_BASE_MONTH-1+offset;
+  const sy=KI_BASE_YEAR+Math.floor(sm/12);
+  const smo=sm%12+1;
+  const em=sm+11;
+  const ey=KI_BASE_YEAR+Math.floor(em/12);
+  const emo=em%12+1;
+  return{from:`${sy}/${String(smo).padStart(2,"0")}`,to:`${ey}/${String(emo).padStart(2,"0")}`};
+}
+function kariGetKiFromYM(ym){
+  const m=String(ym).match(/(\d{4})[\/\-](\d{1,2})/);
+  if(!m)return null;
+  const diff=(parseInt(m[1])-KI_BASE_YEAR)*12+(parseInt(m[2])-KI_BASE_MONTH);
+  return KI_BASE_NUM+Math.floor(diff/12);
+}
+function kariGetBaseName(name){return name.includes("_")?name.replace(/_.*$/,"").trim():name.trim();}
+function kariGetMergedData(dataObj){
+  const merged={};
+  Object.keys(dataObj.banks).forEach(raw=>{
+    const base=kariGetBaseName(raw);
+    if(!merged[base])merged[base]=new Array(dataObj.months.length).fill(0);
+    dataObj.banks[raw].forEach((v,i)=>{merged[base][i]+=v;});
+  });
+  return{months:dataObj.months,banks:merged};
+}
+function kariFmt(n){return`${Math.round(n/1000).toLocaleString()}千円`;}
+function kariFmtNum(n){const v=Number(n);if(isNaN(v))return"-";return Math.round(v/1000).toLocaleString();}
+function kariFmtDateStr(val){
+  if(!val)return"";const s=String(val);
+  const m=s.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  return m?`${m[1]}/${m[2].padStart(2,"0")}/${m[3].padStart(2,"0")}`:s.slice(0,10);
+}
+function kariFmtMonthStr(val){
+  if(!val)return"";const s=String(val);
+  const m=s.match(/(\d{4})[\/\-\.](\d{1,2})/);
+  if(m)return`${m[1]}/${m[2].padStart(2,"0")}`;
+  const d=new Date(s);
+  if(!isNaN(d.getTime()))return`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}`;
+  return s.slice(0,7);
+}
+function kariFmtAxis(v){return Math.round(v/1000).toLocaleString();}
+function kariFilteredMonths(months){
+  if(kariF.kiFrom===null)return months;
+  const from=kariGetKiRange(kariF.kiFrom).from;
+  const to=kariGetKiRange(kariF.kiTo).to;
+  return months.filter(m=>{const ym=kariFmtMonthStr(m);return ym>=from&&ym<=to;});
+}
+
+function kariInitFilters(){
+  const allMonths=kariRaw.balance.months.filter(Boolean);
+  const kiSet=new Set();
+  allMonths.forEach(m=>{const k=kariGetKiFromYM(m);if(k!==null)kiSet.add(k);});
+  const karis=[...kiSet].sort((a,b)=>a-b);
+  if(karis.length){kariF.kiFrom=karis[0];kariF.kiTo=karis[karis.length-1];}
+  const banks=Object.keys(kariRaw.balance.banks).filter(b=>b!=='合計');
+  kariF.banks=[...banks];
+}
+
+function kariSelectAllBanks(checked){
+  const banks=Object.keys(kariRaw.balance.banks).filter(b=>b!=='合計');
+  kariF.banks=checked?[...banks]:[];
+  kariRender();
+}
+function kariToggleBank(bank,checked){
+  if(checked){if(!kariF.banks.includes(bank))kariF.banks.push(bank);}
+  else{kariF.banks=kariF.banks.filter(b=>b!==bank);}
+  kariRender();
+}
+function kariApplyFilter(){
+  kariF.kiFrom=parseInt(document.getElementById("kariSelKiFrom").value);
+  kariF.kiTo=parseInt(document.getElementById("kariSelKiTo").value);
+  if(kariF.kiFrom>kariF.kiTo)kariF.kiTo=kariF.kiFrom;
+  kariRender();
+}
+function kariSetTab(tab){
+  const mainEl=document.querySelector('.s-main');
+  if(mainEl)kariTabScrollPos[kariF.tab]=mainEl.scrollTop;
+  kariF.tab=tab;
+  kariRender();
+}
+
+function kariCalcKPIs(){
+  const today=new Date();
+  const thisYM=`${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,"0")}`;
+  const prevYM=today.getMonth()===0?`${today.getFullYear()-1}/12`:`${today.getFullYear()}/${String(today.getMonth()).padStart(2,"0")}`;
+  const getVal=(dataObj,ym)=>{
+    const idx=dataObj.months.findIndex(m=>String(m)===ym);
+    if(idx<0)return 0;
+    return kariF.banks.reduce((s,b)=>s+(dataObj.banks[b]?.[idx]||0),0);
+  };
+  const totalBalance=getVal(kariRaw.balance,prevYM);
+  const totalRepay=getVal(kariRaw.repay,thisYM);
+  const totalInterest=getVal(kariRaw.interest,thisYM);
+  const thisYear=String(today.getFullYear());
+  const yearInterest=kariRaw.interest.months.reduce((sum,m,idx)=>{
+    if(!String(m).startsWith(thisYear))return sum;
+    return sum+kariF.banks.reduce((s,b)=>s+(kariRaw.interest.banks[b]?.[idx]||0),0);
+  },0);
+  return{totalBalance,totalRepay,totalInterest,yearInterest,prevYM,thisYM};
+}
+
+function kariDestroyCharts(){
+  Object.values(kariChartInstances).forEach(c=>{try{c.destroy();}catch(e){}});
+  kariChartInstances={};
+}
+
+function kariBuildDataTable(dataObj,showTotal){
+  const months=kariFilteredMonths(dataObj.months);
+  const banks=kariF.banks.filter(b=>dataObj.banks[b]);
+  const thead=`<tr><th class="kari-sticky-col-1">銀行名</th>${months.map(m=>`<th class="kari-r">${kariFmtMonthStr(m)}</th>`).join("")}</tr>`;
+  const tbodyRows=banks.map(b=>{
+    const cells=months.map(m=>{
+      const idx=dataObj.months.findIndex(x=>String(x)===String(m));
+      const v=idx>=0?(dataObj.banks[b][idx]||0):0;
+      return`<td class="kari-r">${v?kariFmtNum(v):"-"}</td>`;
+    }).join("");
+    return`<tr><td class="kari-sticky-col-1">${b}</td>${cells}</tr>`;
+  }).join("");
+  let tfootRow="";
+  if(showTotal){
+    const totalCells=months.map(m=>{
+      const total=banks.reduce((s,b)=>{const idx=dataObj.months.findIndex(x=>String(x)===String(m));return s+(idx>=0?dataObj.banks[b]?.[idx]||0:0);},0);
+      return`<td class="kari-r">${total?kariFmtNum(total):"-"}</td>`;
+    }).join("");
+    tfootRow=`<tfoot><tr><td class="kari-sticky-col-1">合計</td>${totalCells}</tr></tfoot>`;
+  }
+  return`<table><thead>${thead}</thead><tbody>${tbodyRows}</tbody>${tfootRow}</table>`;
+}
+
+function kariRenderBalance(){
+  const{prevYM}=kariCalcKPIs();
+  return`
+    <div class="kari-card">
+      <div class="kari-card-title">月初残高推移（銀行別積み上げ）</div>
+      <div class="kari-chart-wrap" style="height:320px;"><canvas id="kariChartBalance"></canvas></div>
+    </div>
+    <div class="kari-card">
+      <div class="kari-card-title">数値データ</div>
+      <div class="kari-tbl-wrap kari-tbl-wrap-sticky">${kariBuildDataTable(kariRaw.balance,true)}</div>
+    </div>
+    <div class="kari-card">
+      <div class="kari-card-title">借入残高シェア（${prevYM}末）</div>
+      <div style="display:flex;gap:20px;align-items:center;">
+        <div style="width:260px;flex-shrink:0;height:260px;position:relative;"><canvas id="kariChartBalPie"></canvas></div>
+        <div style="flex:1;" id="kariBalPieTable"></div>
+      </div>
+    </div>`;
+}
+function kariRenderRepay(){
+  return`
+    <div class="kari-card">
+      <div class="kari-card-title">月次元金返済額（銀行別積み上げ）</div>
+      <div class="kari-chart-wrap" style="height:320px;"><canvas id="kariChartRepay"></canvas></div>
+    </div>
+    <div class="kari-card">
+      <div class="kari-card-title">数値データ</div>
+      <div class="kari-tbl-wrap kari-tbl-wrap-sticky">${kariBuildDataTable(kariRaw.repay,true)}</div>
+    </div>`;
+}
+function kariRenderInterest(){
+  return`
+    <div class="kari-card">
+      <div class="kari-card-title">月次利息額推移（銀行別積み上げ）</div>
+      <div class="kari-chart-wrap" style="height:280px;"><canvas id="kariChartInterest"></canvas></div>
+    </div>
+    <div class="kari-card">
+      <div class="kari-card-title">数値データ</div>
+      <div class="kari-tbl-wrap kari-tbl-wrap-sticky">${kariBuildDataTable(kariRaw.interest,true)}</div>
+    </div>
+    <div class="kari-card">
+      <div class="kari-card-title">銀行別・利息シェア（期間合計）</div>
+      <div style="display:flex;gap:20px;align-items:center;">
+        <div style="width:260px;flex-shrink:0;height:260px;position:relative;"><canvas id="kariChartIntPie"></canvas></div>
+        <div style="flex:1;" id="kariIntPieTable"></div>
+      </div>
+    </div>`;
+}
+function kariRenderList(){
+  const balKey=Object.keys(kariRaw.ichiran[0]||{}).find(k=>k.startsWith("残高"))||"残高";
+  const rows=kariRaw.ichiran;
+  let totalAmt=0,totalBal=0;
+  rows.forEach(r=>{totalAmt+=Number(r["借入金額"])||0;totalBal+=Number(r[balKey])||0;});
+  const tbody=rows.map(r=>{
+    const amt=Number(r["借入金額"])||0;
+    const bal=Number(r[balKey])||0;
+    const pct=amt>0?Math.min(100,Math.round((amt-bal)/amt*100)):0;
+    return`<tr>
+      <td class="kari-sticky-col-1">${r["銀行名"]||""}</td>
+      <td class="kari-sticky-col-2">${r["種類"]||""}</td>
+      <td class="kari-sticky-col-3 kari-r">${kariFmtNum(amt)}</td>
+      <td class="kari-r">${r["利率(%)"]||0}%</td>
+      <td class="kari-r">${kariFmtNum(r["割賦金額"])}</td>
+      <td>${kariFmtDateStr(r["融資日"])}</td>
+      <td>${kariFmtDateStr(r["初回返済日"])}</td>
+      <td>${kariFmtMonthStr(r["融資期限"])}</td>
+      <td class="kari-r">${r["返済期間(月)"]||""}ヶ月</td>
+      <td><div style="display:flex;align-items:center;"><div class="kari-progress-wrap"><div class="kari-progress-bar" style="width:${pct}%;"></div></div><span class="kari-progress-label">${pct}%</span></div></td>
+      <td class="kari-r">${kariFmtNum(bal)}</td>
+    </tr>`;
+  }).join("");
+  return`<div class="kari-card">
+    <div class="kari-card-title">借入一覧</div>
+    <div class="kari-tbl-wrap kari-tbl-wrap-sticky">
+      <table>
+        <thead><tr>
+          <th class="kari-sticky-col-1">銀行名</th><th class="kari-sticky-col-2">種類</th><th class="kari-sticky-col-3 kari-r">借入金額（千円）</th>
+          <th class="kari-r">利率</th><th class="kari-r">割賦金額（千円）</th><th>融資日</th><th>初回返済日</th><th>完済予定月</th>
+          <th class="kari-r">返済期間</th><th>返済進捗</th><th class="kari-r">現在残高（千円）</th>
+        </tr></thead>
+        <tbody>${tbody}</tbody>
+        <tfoot><tr>
+          <td class="kari-sticky-col-1">合計</td><td class="kari-sticky-col-2"></td>
+          <td class="kari-sticky-col-3 kari-r">${kariFmtNum(totalAmt)}</td>
+          <td colspan="6"></td><td class="kari-r">${kariFmtNum(totalBal)}</td>
+        </tr></tfoot>
+      </table>
+    </div>
+  </div>`;
+}
+function kariGetKozaData(){
+  if(!kariRaw.koza||!kariRaw.koza.length)return null;
+  const rows=kariRaw.koza;
+  const monthSet=[...new Set(rows.map(r=>kariFmtMonthStr(r["年月"])))].sort();
+  const bankSet=[...new Set(rows.map(r=>String(r["銀行"]||"")))].filter(Boolean);
+  const banks={};
+  bankSet.forEach(b=>{banks[b]=monthSet.map(m=>{const row=rows.find(r=>kariFmtMonthStr(r["年月"])===m&&String(r["銀行"])===b);return row?(Number(row["口座残高"])||0):0;});});
+  return{months:monthSet,banks};
+}
+function kariRenderKoza(){
+  if(!kariRaw.koza||!kariRaw.koza.length)return`<div class="kari-card"><div class="loading">口座残高データがありません</div></div>`;
+  const kd=kariGetKozaData();
+  const months=kariFilteredMonths(kd.months);
+  const bankNames=Object.keys(kd.banks);
+  const thead=`<tr><th class="kari-sticky-col-1">銀行</th>${months.map(m=>`<th class="kari-r">${m}</th>`).join("")}<th class="kari-r">最新残高</th></tr>`;
+  const tbody=bankNames.map(b=>{
+    const cells=months.map(m=>{const idx=kd.months.indexOf(m);const v=idx>=0?kd.banks[b][idx]:0;return`<td class="kari-r">${v?kariFmtNum(v):"-"}</td>`;}).join("");
+    const lastIdx=kd.months.indexOf(months[months.length-1]);
+    const lastVal=lastIdx>=0?kd.banks[b][lastIdx]:0;
+    return`<tr><td class="kari-sticky-col-1">${b}</td>${cells}<td class="kari-r"><strong>${lastVal?kariFmtNum(lastVal):"-"}</strong></td></tr>`;
+  }).join("");
+  const totalCells=months.map(m=>{const idx=kd.months.indexOf(m);const total=bankNames.reduce((s,b)=>s+(idx>=0?kd.banks[b][idx]||0:0),0);return`<td class="kari-r">${total?kariFmtNum(total):"-"}</td>`;}).join("");
+  const lastIdx2=kd.months.indexOf(months[months.length-1]);
+  const lastTotal=bankNames.reduce((s,b)=>s+(lastIdx2>=0?kd.banks[b][lastIdx2]||0:0),0);
+  return`
+    <div class="kari-card">
+      <div class="kari-card-title">口座残高推移</div>
+      <div class="kari-chart-wrap" style="height:280px;"><canvas id="kariChartKoza"></canvas></div>
+      <div class="kari-tbl-wrap kari-tbl-wrap-sticky" style="margin-top:14px;">
+        <table><thead>${thead}</thead><tbody>${tbody}</tbody>
+        <tfoot><tr><td class="kari-sticky-col-1">合計</td>${totalCells}<td class="kari-r"><strong>${kariFmtNum(lastTotal)}</strong></td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="kari-card">
+      <div class="kari-card-title">ネットキャッシュ推移（口座残高合計 − 借入残高合計）</div>
+      <div class="kari-chart-wrap" style="height:280px;"><canvas id="kariChartNetCash"></canvas></div>
+    </div>`;
+}
+
+function kariGetDatasets(dataObj){
+  const months=kariFilteredMonths(dataObj.months);
+  const banks=kariF.banks.filter(b=>dataObj.banks[b]);
+  const datasets=banks.map((b,i)=>({
+    label:b,
+    data:months.map(m=>{const idx=dataObj.months.findIndex(x=>String(x)===String(m));return idx>=0?(dataObj.banks[b][idx]||0):0;}),
+    backgroundColor:KARI_COLORS[i%KARI_COLORS.length],borderWidth:0,borderRadius:2
+  }));
+  return{labels:months.map(kariFmtMonthStr),datasets};
+}
+function kariStackedOpts(){
+  return{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{position:"bottom",labels:{color:"#94a3b8",boxWidth:10,font:{size:11}}},
+      tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${Math.round(ctx.parsed.y/1000).toLocaleString()}千円`}}
+    },
+    scales:{
+      x:{stacked:true,ticks:{color:"#64748b",font:{size:10},maxRotation:45},grid:{color:"rgba(30,58,95,.4)"}},
+      y:{stacked:true,ticks:{color:"#64748b",font:{size:10},callback:v=>kariFmtAxis(v)},grid:{color:"rgba(30,58,95,.4)"}}
+    }
+  };
+}
+function kariDrawStackedBar(canvasId,dataObj,key){
+  const el=document.getElementById(canvasId);if(!el)return;
+  kariChartInstances[key]=new Chart(el,{type:"bar",data:kariGetDatasets(dataObj),options:kariStackedOpts()});
+}
+function kariDrawBalancePie(){
+  const el=document.getElementById("kariChartBalPie");if(!el)return;
+  const{prevYM}=kariCalcKPIs();
+  const merged=kariGetMergedData(kariRaw.balance);
+  const banks=Object.keys(merged.banks).filter(base=>kariF.banks.some(r=>kariGetBaseName(r)===base));
+  const idx=merged.months.findIndex(m=>kariFmtMonthStr(m)===prevYM);
+  const data=banks.map((b,i)=>({bank:b,val:idx>=0?merged.banks[b][idx]||0:0,color:KARI_COLORS[i%KARI_COLORS.length]})).filter(d=>d.val>0);
+  const grandTotal=data.reduce((s,d)=>s+d.val,0);
+  kariChartInstances.balPie=new Chart(el,{
+    type:"doughnut",plugins:[ChartDataLabels],
+    data:{labels:data.map(d=>d.bank),datasets:[{data:data.map(d=>d.val),backgroundColor:data.map(d=>d.color),borderWidth:1,borderColor:"#1a2f4a"}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${kariFmt(ctx.parsed)} (${grandTotal>0?(ctx.parsed/grandTotal*100).toFixed(1):0}%)`}},
+      datalabels:{color:"#fff",font:{size:11,weight:"600"},formatter:(val)=>{const pct=grandTotal>0?(val/grandTotal*100):0;return pct>=5?pct.toFixed(1)+"%":""}}
+    }}
+  });
+  const tbl=document.getElementById("kariBalPieTable");if(!tbl)return;
+  const rows=data.map(d=>{const pct=grandTotal>0?(d.val/grandTotal*100).toFixed(1):0;return`<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${d.color};margin-right:6px;"></span>${d.bank}</td><td class="kari-r">${kariFmtNum(d.val)}</td><td class="kari-r">${pct}%</td></tr>`;}).join("");
+  tbl.innerHTML=`<table><thead><tr><th>銀行名</th><th class="kari-r">残高（千円）</th><th class="kari-r">シェア</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>合計</td><td class="kari-r">${kariFmtNum(grandTotal)}</td><td class="kari-r">100%</td></tr></tfoot></table>`;
+}
+function kariDrawInterestCharts(){
+  const el1=document.getElementById("kariChartInterest");
+  if(el1)kariChartInstances.interest=new Chart(el1,{type:"bar",data:kariGetDatasets(kariRaw.interest),options:kariStackedOpts()});
+  const el3=document.getElementById("kariChartIntPie");
+  if(el3){
+    const merged=kariGetMergedData(kariRaw.interest);
+    const months=kariFilteredMonths(merged.months);
+    const bankTotals=Object.keys(merged.banks).filter(base=>kariF.banks.some(r=>kariGetBaseName(r)===base)).map((base,i)=>({bank:base,total:months.reduce((s,m)=>{const idx=merged.months.findIndex(x=>String(x)===String(m));return s+(idx>=0?merged.banks[base][idx]||0:0);},0),color:KARI_COLORS[i%KARI_COLORS.length]}));
+    const grandTotal=bankTotals.reduce((s,x)=>s+x.total,0);
+    kariChartInstances.intPie=new Chart(el3,{
+      type:"doughnut",plugins:[ChartDataLabels],
+      data:{labels:bankTotals.map(x=>x.bank),datasets:[{data:bankTotals.map(x=>x.total),backgroundColor:bankTotals.map(x=>x.color),borderWidth:1,borderColor:"#1a2f4a"}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${Math.round(ctx.parsed/1000).toLocaleString()}千円 (${grandTotal>0?(ctx.parsed/grandTotal*100).toFixed(1):0}%)`}},
+        datalabels:{color:"#fff",font:{size:11,weight:"600"},formatter:(val)=>{const pct=grandTotal>0?(val/grandTotal*100):0;return pct>=5?pct.toFixed(1)+"%":""}}
+      }}
+    });
+    const tbl=document.getElementById("kariIntPieTable");
+    if(tbl){
+      const rows=bankTotals.map(d=>{const pct=grandTotal>0?(d.total/grandTotal*100).toFixed(1):0;return`<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${d.color};margin-right:6px;"></span>${d.bank}</td><td class="kari-r">${Math.round(d.total/1000).toLocaleString()}</td><td class="kari-r">${pct}%</td></tr>`;}).join("");
+      tbl.innerHTML=`<table><thead><tr><th>銀行名</th><th class="kari-r">利息（千円）</th><th class="kari-r">シェア</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>合計</td><td class="kari-r">${Math.round(grandTotal/1000).toLocaleString()}</td><td class="kari-r">100%</td></tr></tfoot></table>`;
+    }
+  }
+}
+function kariDrawKozaChart(){
+  const el=document.getElementById("kariChartKoza");if(!el)return;
+  const kd=kariGetKozaData();if(!kd)return;
+  const months=kariFilteredMonths(kd.months);
+  const bankNames=Object.keys(kd.banks);
+  const datasets=bankNames.map((b,i)=>({
+    label:b,data:months.map(m=>{const idx=kd.months.indexOf(m);return idx>=0?kd.banks[b][idx]||0:0;}),
+    borderColor:KARI_COLORS[i%KARI_COLORS.length],backgroundColor:KARI_COLORS[i%KARI_COLORS.length]+"33",
+    borderWidth:2,pointRadius:3,fill:false,tension:0.3
+  }));
+  kariChartInstances.koza=new Chart(el,{type:"line",data:{labels:months,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${kariFmtNum(ctx.parsed.y)}千円`}}},scales:{x:{ticks:{color:"#64748b",font:{size:10},maxRotation:45},grid:{color:"rgba(30,58,95,.4)"}},y:{ticks:{color:"#64748b",font:{size:10},callback:v=>kariFmtAxis(v)},grid:{color:"rgba(30,58,95,.4)"}}}}});
+}
+function kariDrawNetCashChart(){
+  const el=document.getElementById("kariChartNetCash");if(!el)return;
+  const kd=kariGetKozaData();if(!kd)return;
+  const allMonths=[...new Set([...kd.months,...kariRaw.balance.months.map(kariFmtMonthStr)])].sort();
+  const months=kariFilteredMonths(allMonths);
+  const bankNames=Object.keys(kd.banks);
+  const kozaTotals=months.map(m=>{const idx=kd.months.indexOf(m);return bankNames.reduce((s,b)=>s+(idx>=0?kd.banks[b][idx]||0:0),0);});
+  const balanceTotals=months.map(m=>{const idx=kariRaw.balance.months.findIndex(x=>kariFmtMonthStr(x)===m);return kariF.banks.reduce((s,b)=>s+(idx>=0?kariRaw.balance.banks[b]?.[idx]||0:0),0);});
+  const netCash=months.map((_,i)=>kozaTotals[i]-balanceTotals[i]);
+  kariChartInstances.netCash=new Chart(el,{type:"bar",data:{labels:months,datasets:[
+    {label:"口座残高合計",data:kozaTotals,backgroundColor:"rgba(245,158,11,.7)",borderRadius:2,borderWidth:0},
+    {label:"借入残高合計",data:balanceTotals,backgroundColor:"rgba(148,163,184,.6)",borderRadius:2,borderWidth:0},
+    {label:"ネットキャッシュ",data:netCash,backgroundColor:netCash.map(v=>v>=0?"rgba(16,185,129,.85)":"rgba(239,68,68,.85)"),borderRadius:2,borderWidth:0}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${kariFmtNum(ctx.parsed.y)}千円`}}},scales:{x:{ticks:{color:"#64748b",font:{size:10},maxRotation:45},grid:{color:"rgba(30,58,95,.4)"}},y:{ticks:{color:"#64748b",font:{size:10},callback:v=>kariFmtAxis(v)},grid:{color:"rgba(30,58,95,.4)"}}}}});
+}
+function kariDrawCharts(){
+  if(kariF.tab==="balance"){kariDrawStackedBar("kariChartBalance",kariRaw.balance,"chartBalance");kariDrawBalancePie();}
+  if(kariF.tab==="repay")kariDrawStackedBar("kariChartRepay",kariRaw.repay,"chartRepay");
+  if(kariF.tab==="interest")kariDrawInterestCharts();
+  if(kariF.tab==="koza"){kariDrawKozaChart();kariDrawNetCashChart();}
+}
+
+function kariRender(){
+  if(!kariRaw)return;
+  kariDestroyCharts();
+  const kpi=kariCalcKPIs();
+  const kpiHtml=`<div class="kari-kpi-row">
+    <div class="kari-kpi"><div class="kari-kpi-lbl">総借入残高（${kpi.prevYM}末）</div><div class="kari-kpi-val">${kariFmt(kpi.totalBalance)}</div><div class="kari-kpi-sub">${kariF.banks.length}件の借入</div></div>
+    <div class="kari-kpi"><div class="kari-kpi-lbl">今月の元金返済（${kpi.thisYM}）</div><div class="kari-kpi-val kari-red">${kariFmt(kpi.totalRepay)}</div><div class="kari-kpi-sub">キャッシュアウト（元金）</div></div>
+    <div class="kari-kpi"><div class="kari-kpi-lbl">今月の利息（${kpi.thisYM}）</div><div class="kari-kpi-val kari-yellow">${kariFmt(kpi.totalInterest)}</div><div class="kari-kpi-sub">金融コスト（今月）</div></div>
+    <div class="kari-kpi"><div class="kari-kpi-lbl">年間利息見込み（${new Date().getFullYear()}年）</div><div class="kari-kpi-val">${kariFmt(kpi.yearInterest)}</div><div class="kari-kpi-sub">年間金融コスト合計</div></div>
+  </div>`;
+  const tabBarHtml=`<div class="kari-tab-bar">
+    <div class="kari-tab-btn${kariF.tab==="balance"?" active":""}" onclick="kariSetTab('balance')">📊 残高推移＆シェア</div>
+    <div class="kari-tab-btn${kariF.tab==="repay"?" active":""}" onclick="kariSetTab('repay')">💴 月次返済（元金）</div>
+    <div class="kari-tab-btn${kariF.tab==="interest"?" active":""}" onclick="kariSetTab('interest')">📈 利息推移</div>
+    <div class="kari-tab-btn${kariF.tab==="list"?" active":""}" onclick="kariSetTab('list')">📋 借入一覧</div>
+    <div class="kari-tab-btn${kariF.tab==="koza"?" active":""}" onclick="kariSetTab('koza')">🏦 口座残高</div>
+  </div>`;
+  let content="";
+  if(kariF.tab==="balance")content=kariRenderBalance();
+  else if(kariF.tab==="repay")content=kariRenderRepay();
+  else if(kariF.tab==="interest")content=kariRenderInterest();
+  else if(kariF.tab==="list")content=kariRenderList();
+  else if(kariF.tab==="koza")content=kariRenderKoza();
+  document.getElementById("app").innerHTML=`
+    <div class="sticky-header">
+      ${pageTabsHtml("")}
+      ${tabBarHtml}
+    </div>
+    <div class="kari-content">${kpiHtml}${content}</div>`;
+  updateSidebar();
+  const mainEl=document.querySelector('.s-main');
+  if(mainEl)mainEl.scrollTop=kariTabScrollPos[kariF.tab]||0;
+  kariDrawCharts();
+}
+
+async function kariFetchData(){
+  if(!currentToken||!currentUser){
+    document.getElementById("app").innerHTML=`<div class="sticky-header">${pageTabsHtml("")}</div><div class="loading" style="color:var(--red)">認証トークンが無効です。再ログインしてください。</div>`;
+    updateSidebar();return;
+  }
+  kariDestroyCharts();
+  document.getElementById("app").innerHTML=`<div class="sticky-header">${pageTabsHtml("")}</div><div class="loading"><div class="spinner">⟳</div><div>借入データを読み込み中...</div></div>`;
+  updateSidebar();
+  try{
+    const res=await fetch(`${KARI_API_URL}?token=${encodeURIComponent(currentToken)}&email=${encodeURIComponent(currentUser)}`);
+    const json=await res.json();
+    if(json.error)throw new Error(json.error);
+    kariRaw=json;
+    kariInitFilters();
+    if(F.page==="kari")kariRender();
+  }catch(e){
+    document.getElementById("app").innerHTML=`<div class="sticky-header">${pageTabsHtml("")}</div><div class="loading"><div style="font-size:32px;margin-bottom:12px;">⚠️</div><div style="color:var(--red)">${e.message}</div><button class="btn btn-accent" style="margin-top:12px;" onclick="kariFetchData()">再読み込み</button></div>`;
+    updateSidebar();
+  }
+}
+
+function renderKariPage(){
+  if(!kariRaw){
+    document.getElementById("app").innerHTML=`<div class="sticky-header">${pageTabsHtml("")}</div><div class="loading"><div class="spinner">⟳</div><div>借入データを読み込み中...</div></div>`;
+    updateSidebar();
+    kariFetchData();
+    return;
+  }
+  kariRender();
 }
 
 function parseJwt(token){
@@ -1748,6 +2263,7 @@ function parseJwt(token){
 }
 
 function handleCredentialResponse(response){
+  currentToken=response.credential;
   const payload=parseJwt(response.credential);
   const email=payload.email;
   document.getElementById("pw-error").textContent="";
@@ -1763,7 +2279,7 @@ async function checkPermission(email,token){
     if(json.success&&json.tabs&&json.tabs.length>0){
       allowedTabs=json.tabs;
       currentUser=email;
-      sessionStorage.setItem("auth",JSON.stringify({email,tabs:allowedTabs}));
+      sessionStorage.setItem("auth",JSON.stringify({email,tabs:allowedTabs,token}));
       F.page=allowedTabs[0];
       document.getElementById("pw-screen").style.display="none";
       document.getElementById("layout").style.display="flex";
@@ -1780,7 +2296,7 @@ async function checkPermission(email,token){
 
 function logout(){
   sessionStorage.removeItem("auth");
-  allowedTabs=[];currentUser=null;
+  allowedTabs=[];currentUser=null;currentToken=null;kariRaw=null;
   document.getElementById("layout").style.display="none";
   document.getElementById("pw-screen").style.display="flex";
   document.getElementById("pw-error").textContent="";
@@ -1800,8 +2316,8 @@ function initSignIn(){
   const saved=sessionStorage.getItem("auth");
   if(saved){
     try{
-      const {email,tabs}=JSON.parse(saved);
-      allowedTabs=tabs;currentUser=email;
+      const {email,tabs,token}=JSON.parse(saved);
+      allowedTabs=tabs;currentUser=email;currentToken=token||null;
       F.page=allowedTabs[0]||'main';
       document.getElementById("pw-screen").style.display="none";
       document.getElementById("layout").style.display="flex";
