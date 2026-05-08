@@ -1048,9 +1048,7 @@ function renderSeikyuuPage(){
   const mFrom=F[kiKey]==='all'?0:(kiMonths[F[kiKey]]?.min||0);
   const mTo=F[kiKey]==='all'?99999:(kiMonths[F[kiKey]]?.max||99999);
 
-  // DEBUG
-  const _dbgKoukoku=seikyuuData.filter(r=>r.cat==='広告運用費（立替費のみ）');
-  console.log('[DEBUG] 広告運用費 count=',_dbgKoukoku.length,'sample=',JSON.stringify(_dbgKoukoku.slice(0,2)));
+  // DEBUG (removed)
   // 各データソースを期でフィルター
   const tatekaeFiltered=seikyuuData.filter(r=>r.monthSort>=mFrom&&r.monthSort<=mTo);
   const kyoekiFiltered=corpoCostData.filter(r=>r.monthSort>=mFrom&&r.monthSort<=mTo);
@@ -1062,6 +1060,8 @@ function renderSeikyuuPage(){
     if(r.monthLabel&&!allMonthMap.has(r.monthLabel))allMonthMap.set(r.monthLabel,r.monthSort);
   });
   const months=[...allMonthMap.entries()].sort((a,b)=>a[1]-b[1]).map(e=>e[0]);
+  // DEBUG
+  console.log('[DEBUG] months=',JSON.stringify(months.slice(0,4)),'tatekaeFiltered.length=',tatekaeFiltered.length,'byKoukoku=',tatekaeFiltered.filter(r=>r.cat==='広告運用費（立替費のみ）').length);
 
   const byMonthTatekae=groupBy(tatekaeFiltered,'monthLabel');
   const byMonthKyoeki=groupBy(kyoekiFiltered,'monthLabel');
