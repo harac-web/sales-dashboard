@@ -717,14 +717,17 @@ function renderCostPage(data, pageId, pageTitle){
         const cats=unique(filtered.filter(r=>r[sfField]===v).map(r=>r['大分類'])).filter(Boolean).sort();
         cats.forEach((cat,j)=>{
           let cTotal=0;
-          html+=`<tr id="tm-row-${i}-${j}" class="prod-row prod-row-${i} tm-sub-row" onclick="toggleTmSubRows(${i},${j},event)"><td title="${cat}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;"><span class="expand-icon">▶</span>${cat}</td>`;
+          html+=`<tr id="tm-row-${i}-${j}" class="prod-row prod-row-${i} tm-sub-row" onclick="toggleTmSubRows(${i},${j},event)"><td title="${formatCostCategoryLabel(cat)}" style="padding-left:20px;color:var(--muted);font-weight:600;font-size:11px;"><span class="expand-icon">▶</span>${formatCostCategoryLabel(cat)}</td>`;
           months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v&&r['大分類']===cat),'amt')*100)/100;cTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
           html+=`<td>${cTotal.toFixed(1)}</td></tr>`;
-          const kubuns=unique(filtered.filter(r=>r[sfField]===v&&r['大分類']===cat).map(r=>r['支払い区分'])).filter(Boolean).sort();
-          kubuns.forEach(k=>{
+          const isEmpCat=cat==='人件費（社員）';
+          const subItems=isEmpCat
+            ?unique(filtered.filter(r=>r[sfField]===v&&r['大分類']===cat).map(r=>r['種別'])).filter(Boolean).sort()
+            :unique(filtered.filter(r=>r[sfField]===v&&r['大分類']===cat).map(r=>r['支払い区分'])).filter(Boolean).sort();
+          subItems.forEach(k=>{
             let pTotal=0;
-            html+=`<tr class="cat-sub-row cat-sub-row-${i}-${j}" style="display:none;"><td title="${k}" style="padding-left:38px;color:var(--dim);font-size:10px;">${k}</td>`;
-            months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v&&r['大分類']===cat&&r['支払い区分']===k),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+            html+=`<tr class="cat-sub-row cat-sub-row-${i}-${j}" style="display:none;"><td title="${k}" style="padding-left:38px;color:var(--dim);font-size:10px;">└${k}</td>`;
+            months.forEach(m=>{const val=Math.round(sum((byMonth[m]||[]).filter(r=>r[sfField]===v&&r['大分類']===cat&&(isEmpCat?r['種別']===k:r['支払い区分']===k)),'amt')*100)/100;pTotal+=val;html+=val>0?`<td>${val.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
             html+=`<td>${pTotal.toFixed(1)}</td></tr>`;
           });
         });
