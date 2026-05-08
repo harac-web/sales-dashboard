@@ -165,7 +165,7 @@ let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all
 
 function parseMonth(v){
   if(!v)return null;const s=String(v);let y,m;
-  if(s.includes("T")||s.includes("-")){const d=new Date(s);const utcD=d.getUTCDate();if(utcD>=28){m=d.getUTCMonth()+2;y=d.getUTCFullYear()%100;if(m>12){m=1;y+=1;}}else{m=d.getUTCMonth()+1;y=d.getUTCFullYear()%100;}}
+  if(s.includes("T")||s.includes("-")){const d=new Date(s);const utcD=d.getUTCDate();if(utcD>=28){m=d.getUTCMonth()+2;y=d.getUTCFullYear();if(m>12){m=1;y+=1;}}else{m=d.getUTCMonth()+1;y=d.getUTCFullYear();}}
   else{const match=s.match(/(\d+)[年.](\d+)月/);if(match){y=parseInt(match[1]);m=parseInt(match[2]);if(y<100)y+=2000;}else return null;}
   return{y,m,label:`${y}年${m}月`,sort:y*100+m};
 }
@@ -212,7 +212,7 @@ async function fetchData(){
 
 function applyFilters(){
   const mFrom=F.monthFrom==="all"?0:allMonths.find(m=>m.label===F.monthFrom)?.sort||0;
-  const mTo=F.monthTo==="all"?99999:allMonths.find(m=>m.label===F.monthTo)?.sort||99999;
+  const mTo=F.monthTo==="all"?999999:allMonths.find(m=>m.label===F.monthTo)?.sort||999999;
   filteredData=rawData.filter(r=>{
     if(F.cat.length>0&&!F.cat.includes(r.cat))return false;
     if(F.st.length>0&&!F.st.includes(r.st))return false;
@@ -234,7 +234,7 @@ function applyFilters(){
 // 担当別比較ページ用：担当・取引先フィルターを除いたデータ
 function getWhoPageData(){
   const mFrom=F.whoMonthFrom==="all"?0:allMonths.find(m=>m.label===F.whoMonthFrom)?.sort||0;
-  const mTo=F.whoMonthTo==="all"?99999:allMonths.find(m=>m.label===F.whoMonthTo)?.sort||99999;
+  const mTo=F.whoMonthTo==="all"?999999:allMonths.find(m=>m.label===F.whoMonthTo)?.sort||999999;
   return rawData.filter(r=>{
     if(F.whoCat.length>0&&!F.whoCat.includes(r.cat))return false;
     if(F.whoSt.length>0&&!F.whoSt.includes(r.st))return false;
@@ -643,7 +643,7 @@ function renderCostPage(data, pageId, pageTitle){
   });
   const kis=unique(rawData.map(r=>r.ki)).filter(Boolean);
   const mFrom=F[kiKey]==='all'?0:(kiMonths[F[kiKey]]?.min||0);
-  const mTo=F[kiKey]==='all'?99999:(kiMonths[F[kiKey]]?.max||99999);
+  const mTo=F[kiKey]==='all'?999999:(kiMonths[F[kiKey]]?.max||999999);
 
   const filtered=data.filter(r=>{
     if(r.monthSort<mFrom||r.monthSort>mTo)return false;
@@ -826,7 +826,7 @@ function renderRiekiPage(){
   });
   const kis=unique(rawData.map(r=>r.ki)).filter(Boolean);
   const mFrom=F[kiKey]==='all'?0:(kiMonths[F[kiKey]]?.min||0);
-  const mTo=F[kiKey]==='all'?99999:(kiMonths[F[kiKey]]?.max||99999);
+  const mTo=F[kiKey]==='all'?999999:(kiMonths[F[kiKey]]?.max||999999);
 
   // Div/TMフィルター選択中かどうか
   const hasDivTmFilter=F[divKey]!=='all'||F[tmKey]!=='all';
@@ -1046,7 +1046,7 @@ function renderSeikyuuPage(){
   });
   const kis=unique(rawData.map(r=>r.ki)).filter(Boolean);
   const mFrom=F[kiKey]==='all'?0:(kiMonths[F[kiKey]]?.min||0);
-  const mTo=F[kiKey]==='all'?99999:(kiMonths[F[kiKey]]?.max||99999);
+  const mTo=F[kiKey]==='all'?999999:(kiMonths[F[kiKey]]?.max||999999);
 
   // DEBUG (removed)
   // 各データソースを期でフィルター
@@ -1060,9 +1060,6 @@ function renderSeikyuuPage(){
     if(r.monthLabel&&!allMonthMap.has(r.monthLabel))allMonthMap.set(r.monthLabel,r.monthSort);
   });
   const months=[...allMonthMap.entries()].sort((a,b)=>a[1]-b[1]).map(e=>e[0]);
-  // DEBUG
-  console.log('[DEBUG] months=',JSON.stringify(months.slice(0,4)),'tatekaeFiltered.length=',tatekaeFiltered.length,'byKoukoku=',tatekaeFiltered.filter(r=>r.cat==='広告運用費（立替費のみ）').length);
-
   const byMonthTatekae=groupBy(tatekaeFiltered,'monthLabel');
   const byMonthKyoeki=groupBy(kyoekiFiltered,'monthLabel');
   const byMonthCost=groupBy(costFiltered,'monthLabel');
@@ -1146,7 +1143,7 @@ function renderClPage(){
     return true;
   });
   const clMFrom=F.clMonthFrom==="all"?0:allMonths.find(m=>m.label===F.clMonthFrom)?.sort||0;
-  const clMTo=F.clMonthTo==="all"?99999:allMonths.find(m=>m.label===F.clMonthTo)?.sort||99999;
+  const clMTo=F.clMonthTo==="all"?999999:allMonths.find(m=>m.label===F.clMonthTo)?.sort||999999;
   const salesData=rawData.filter(r=>{
     if(F.clTanto!=="all"&&r.who!==F.clTanto)return false;
     if(F.clSt!=="all"&&r.clientSt!==F.clSt)return false;
@@ -1159,7 +1156,7 @@ function renderClPage(){
   });
   clCompanies=companies;
   const tantoMFrom=F.tantoMonthFrom==="all"?0:allMonths.find(m=>m.label===F.tantoMonthFrom)?.sort||0;
-  const tantoMTo=F.tantoMonthTo==="all"?99999:allMonths.find(m=>m.label===F.tantoMonthTo)?.sort||99999;
+  const tantoMTo=F.tantoMonthTo==="all"?999999:allMonths.find(m=>m.label===F.tantoMonthTo)?.sort||999999;
   const tantoSalesData=rawData.filter(r=>{
     if(F.tantoKi!=="all"&&r.ki!==F.tantoKi)return false;
     if(r.monthSort<tantoMFrom||r.monthSort>tantoMTo)return false;
