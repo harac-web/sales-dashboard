@@ -166,7 +166,7 @@ let F={cat:[],st:[],client:"all",type:"all",who:"all",div:"all",ki:"all",tm:"all
 function parseMonth(v){
   if(!v)return null;const s=String(v);let y,m;
   if(s.includes("T")||s.includes("-")){const d=new Date(s);const utcD=d.getUTCDate();if(utcD>=28){m=d.getUTCMonth()+2;y=d.getUTCFullYear()%100;if(m>12){m=1;y+=1;}}else{m=d.getUTCMonth()+1;y=d.getUTCFullYear()%100;}}
-  else{const match=s.match(/(\d+)年(\d+)月/);if(match){y=parseInt(match[1]);m=parseInt(match[2]);if(y<100)y+=2000;}else return null;}
+  else{const match=s.match(/(\d+)[年.](\d+)月/);if(match){y=parseInt(match[1]);m=parseInt(match[2]);if(y<100)y+=2000;}else return null;}
   return{y,m,label:`${y}年${m}月`,sort:y*100+m};
 }
 function unique(arr){return[...new Set(arr)].filter(Boolean).sort();}
