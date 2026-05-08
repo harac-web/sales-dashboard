@@ -1048,6 +1048,8 @@ function renderSeikyuuPage(){
   const mFrom=F[kiKey]==='all'?0:(kiMonths[F[kiKey]]?.min||0);
   const mTo=F[kiKey]==='all'?99999:(kiMonths[F[kiKey]]?.max||99999);
 
+  // DEBUG
+  console.log('[DEBUG] seikyuuData.length=',seikyuuData.length,'sample=',JSON.stringify(seikyuuData.slice(0,2)));
   // 各データソースを期でフィルター
   const tatekaeFiltered=seikyuuData.filter(r=>r.monthSort>=mFrom&&r.monthSort<=mTo);
   const kyoekiFiltered=corpoCostData.filter(r=>r.monthSort>=mFrom&&r.monthSort<=mTo);
