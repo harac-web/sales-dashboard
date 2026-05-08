@@ -876,6 +876,8 @@ function renderRiekiPage(){
   const fixedSalesByMonth=groupBy(fixedSalesFiltered,'month');
   const jinkenFiltered=bumonFiltered.filter(r=>(r['大分類']||'')==='人件費');
   const jinkenByMonth=groupBy(jinkenFiltered,'monthLabel');
+  const jinkenEmpFiltered=bumonFiltered.filter(r=>(r['大分類']||'')==='人件費（社員）');
+  const jinkenEmpByMonth=groupBy(jinkenEmpFiltered,'monthLabel');
 
   document.getElementById('app').innerHTML=`
     <div class="sticky-header">
@@ -967,12 +969,15 @@ function renderRiekiPage(){
   if(fixedCanvas){
     const fixedData=months.map(m=>Math.round(sum(fixedSalesByMonth[m]||[],'amt')*100)/100);
     const jinkenData=months.map(m=>Math.round(sum(jinkenByMonth[m]||[],'amt')*100)/100);
-    const rateData=months.map((m,idx)=>fixedData[idx]>0?Math.round(jinkenData[idx]/fixedData[idx]*1000)/10:null);
+    const jinkenEmpData=months.map(m=>Math.round(sum(jinkenEmpByMonth[m]||[],'amt')*100)/100);
+    const jinkenTotalData=months.map((m,idx)=>Math.round((jinkenData[idx]+jinkenEmpData[idx])*100)/100);
+    const rateData=months.map((m,idx)=>fixedData[idx]>0?Math.round(jinkenTotalData[idx]/fixedData[idx]*1000)/10:null);
     charts['riekiFixed']=new Chart(fixedCanvas,{data:{labels:months,datasets:[
-      {type:'bar',label:'固定費売上',backgroundColor:'rgba(16,185,129,.7)',data:fixedData,yAxisID:'y'},
-      {type:'bar',label:'人件費',backgroundColor:'rgba(245,158,11,.7)',data:jinkenData,yAxisID:'y'},
+      {type:'bar',label:'固定費売上',backgroundColor:'rgba(16,185,129,.7)',data:fixedData,yAxisID:'y',stack:'sales'},
+      {type:'bar',label:'人件費（インターン・外注）',backgroundColor:'rgba(245,158,11,.7)',data:jinkenData,yAxisID:'y',stack:'jinken'},
+      {type:'bar',label:'人件費（社員）',backgroundColor:'rgba(239,68,68,.5)',data:jinkenEmpData,yAxisID:'y',stack:'jinken'},
       {type:'line',label:'人件費率（対固定費売上）',borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.1)',data:rateData,yAxisID:'y2',tension:.3,pointRadius:4,pointBackgroundColor:'#ef4444'}
-    ]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8',font:{size:10}}},y:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'万'},title:{display:true,text:'万円',color:'#64748b',font:{size:9}}},y2:{type:'linear',position:'right',ticks:{color:'#ef4444',font:{size:10},callback:v=>v+'%'},grid:{drawOnChartArea:false},title:{display:true,text:'人件費率',color:'#ef4444',font:{size:9}}}},plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{const fv=items.find(i=>i.dataset.label==='固定費売上')?.raw||0;const jv=items.find(i=>i.dataset.label==='人件費')?.raw||0;return`余白: ${(fv-jv).toFixed(1)}万円`;}}}}}});
+    ]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8',font:{size:10}}},y:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'万'},title:{display:true,text:'万円',color:'#64748b',font:{size:9}}},y2:{type:'linear',position:'right',ticks:{color:'#ef4444',font:{size:10},callback:v=>v+'%'},grid:{drawOnChartArea:false},title:{display:true,text:'人件費率',color:'#ef4444',font:{size:9}}}},plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:9},boxWidth:10}},tooltip:{callbacks:{footer:items=>{const fv=items.find(i=>i.dataset.label==='固定費売上')?.raw||0;const jv=(items.find(i=>i.dataset.label==='人件費（インターン・外注）')?.raw||0)+(items.find(i=>i.dataset.label==='人件費（社員）')?.raw||0);return`余白: ${(fv-jv).toFixed(1)}万円`;}}}}}});
   }
 
   // 固定売上・人件費テーブル
@@ -991,31 +996,37 @@ function renderRiekiPage(){
     html+=`<tr><td style="padding-left:20px;color:var(--muted);font-size:11px;">└ 固定費売上</td>`;
     months.forEach(m=>{const v=Math.round(sum(fixedSalesByMonth[m]||[],'amt')*100)/100;fixedTotal+=v;html+=v>0?`<td style="color:var(--muted);font-size:11px;">${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
     html+=`<td style="color:var(--muted);font-size:11px;">${fixedTotal.toFixed(1)}</td></tr>`;
-    // 人件費行
+    // 人件費（インターン・外注）行
     let jinkenTotal=0;
-    html+=`<tr><td style="color:var(--text);font-weight:700;">人件費</td>`;
+    html+=`<tr><td style="color:var(--text);font-weight:700;">人件費（インターン・外注）</td>`;
     months.forEach(m=>{const v=Math.round(sum(jinkenByMonth[m]||[],'amt')*100)/100;jinkenTotal+=v;html+=v>0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
     html+=`<td>${jinkenTotal.toFixed(1)}</td></tr>`;
+    // 人件費（社員）行
+    let jinkenEmpTotal=0;
+    html+=`<tr><td style="color:var(--text);font-weight:700;">人件費（社員）</td>`;
+    months.forEach(m=>{const v=Math.round(sum(jinkenEmpByMonth[m]||[],'amt')*100)/100;jinkenEmpTotal+=v;html+=v>0?`<td>${v.toFixed(1)}</td>`:`<td class="zero">-</td>`;});
+    html+=`<td>${jinkenEmpTotal.toFixed(1)}</td></tr>`;
+    const jinkenAllTotal=Math.round((jinkenTotal+jinkenEmpTotal)*100)/100;
     // 固定費売上-人件費行
     html+=`<tr><td style="color:var(--text);font-weight:700;">固定費売上-人件費</td>`;
-    months.forEach(m=>{const f=Math.round(sum(fixedSalesByMonth[m]||[],'amt')*100)/100;const j=Math.round(sum(jinkenByMonth[m]||[],'amt')*100)/100;const d=Math.round((f-j)*100)/100;const c=d>=0?'color:var(--green)':'color:var(--red)';html+=`<td style="${c}">${d>=0?'+':''}${d.toFixed(1)}</td>`;});
-    const diffTotal=Math.round((fixedTotal-jinkenTotal)*100)/100;
+    months.forEach(m=>{const f=Math.round(sum(fixedSalesByMonth[m]||[],'amt')*100)/100;const j=Math.round((sum(jinkenByMonth[m]||[],'amt')+sum(jinkenEmpByMonth[m]||[],'amt'))*100)/100;const d=Math.round((f-j)*100)/100;const c=d>=0?'color:var(--green)':'color:var(--red)';html+=`<td style="${c}">${d>=0?'+':''}${d.toFixed(1)}</td>`;});
+    const diffTotal=Math.round((fixedTotal-jinkenAllTotal)*100)/100;
     const diffColor=diffTotal>=0?'color:var(--green)':'color:var(--red)';
     html+=`<td style="${diffColor}">${diffTotal>=0?'+':''}${diffTotal.toFixed(1)}</td></tr>`;
     // 人件費率（対売上）行
     html+=`<tr><td style="color:var(--text);font-weight:700;">人件費率（対売上）</td>`;
-    months.forEach(m=>{const s=Math.round(sum(salesByMonth[m]||[],'amt')*100)/100;const j=Math.round(sum(jinkenByMonth[m]||[],'amt')*100)/100;const r=s>0?Math.round(j/s*1000)/10:null;const c=r!==null?(r<=30?'color:var(--green)':'color:var(--amber)'):'';html+=r!==null?`<td style="${c}">${r.toFixed(1)}%</td>`:`<td class="zero">-</td>`;});
-    const totalRate=salesAllTotal>0?Math.round(jinkenTotal/salesAllTotal*1000)/10:null;
+    months.forEach(m=>{const s=Math.round(sum(salesByMonth[m]||[],'amt')*100)/100;const j=Math.round((sum(jinkenByMonth[m]||[],'amt')+sum(jinkenEmpByMonth[m]||[],'amt'))*100)/100;const r=s>0?Math.round(j/s*1000)/10:null;const c=r!==null?(r<=30?'color:var(--green)':'color:var(--amber)'):'';html+=r!==null?`<td style="${c}">${r.toFixed(1)}%</td>`:`<td class="zero">-</td>`;});
+    const totalRate=salesAllTotal>0?Math.round(jinkenAllTotal/salesAllTotal*1000)/10:null;
     const totalRateColor=totalRate!==null?(totalRate<=30?'color:var(--green)':'color:var(--amber)'):'';
     html+=totalRate!==null?`<td style="${totalRateColor}">${totalRate.toFixed(1)}%</td>`:`<td class="zero">-</td>`;
     html+=`</tr>`;
     // 人件費率（対固定費売上）行
     html+=`<tr><td style="color:var(--text);font-weight:700;">人件費率（対固定費売上）</td>`;
-    months.forEach(m=>{const f=Math.round(sum(fixedSalesByMonth[m]||[],'amt')*100)/100;const j=Math.round(sum(jinkenByMonth[m]||[],'amt')*100)/100;const r=f>0?Math.round(j/f*1000)/10:null;const c=r===null?'':(r<80?'color:var(--green)':r<=100?'color:var(--amber)':'color:var(--red)');html+=r!==null?`<td style="${c}">${r.toFixed(1)}%</td>`:`<td class="zero">-</td>`;});
-    const fixedRate=fixedTotal>0?Math.round(jinkenTotal/fixedTotal*1000)/10:null;
+    months.forEach(m=>{const f=Math.round(sum(fixedSalesByMonth[m]||[],'amt')*100)/100;const j=Math.round((sum(jinkenByMonth[m]||[],'amt')+sum(jinkenEmpByMonth[m]||[],'amt'))*100)/100;const r=f>0?Math.round(j/f*1000)/10:null;const c=r===null?'':(r<80?'color:var(--green)':r<=100?'color:var(--amber)':'color:var(--red)');html+=r!==null?`<td style="${c}">${r.toFixed(1)}%</td>`:`<td class="zero">-</td>`;});
+    const fixedRate=fixedTotal>0?Math.round(jinkenAllTotal/fixedTotal*1000)/10:null;
     const fixedRateColor=fixedRate===null?'':(fixedRate<80?'color:var(--green)':fixedRate<=100?'color:var(--amber)':'color:var(--red)');
     html+=fixedRate!==null?`<td style="${fixedRateColor}">${fixedRate.toFixed(1)}%</td>`:`<td class="zero">-</td>`;
-    html+=`</tr></tbody></table><p style="font-size:14px;color:var(--text);margin-top:10px;font-weight:600;">※現状は部門コストの人件費のみ計上（社員人件費はあとで追加）</p>`;
+    html+=`</tr></tbody></table>`;
     fel.innerHTML=html;
   }
 }
