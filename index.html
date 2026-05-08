@@ -1049,7 +1049,8 @@ function renderSeikyuuPage(){
   const mTo=F[kiKey]==='all'?99999:(kiMonths[F[kiKey]]?.max||99999);
 
   // DEBUG
-  console.log('[DEBUG] seikyuuData.length=',seikyuuData.length,'cats=',[...new Set(seikyuuData.map(r=>r.cat))].join(' / '));
+  const _dbgKoukoku=seikyuuData.filter(r=>r.cat==='広告運用費（立替費のみ）');
+  console.log('[DEBUG] 広告運用費 count=',_dbgKoukoku.length,'sample=',JSON.stringify(_dbgKoukoku.slice(0,2)));
   // 各データソースを期でフィルター
   const tatekaeFiltered=seikyuuData.filter(r=>r.monthSort>=mFrom&&r.monthSort<=mTo);
   const kyoekiFiltered=corpoCostData.filter(r=>r.monthSort>=mFrom&&r.monthSort<=mTo);
