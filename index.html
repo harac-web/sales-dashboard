@@ -368,9 +368,9 @@ function pageTabsHtml(subtitle){
   </div>`;
 }
 function salesTabsHtml(){
-  return `<div class="tabs" style="margin-bottom:0;">
-    <button class="tab ${F.salesTab==='overview'?'active':''}" onclick="F.salesTab='overview';render();">全体</button>
-    <button class="tab ${F.salesTab==='who'?'active':''}" onclick="F.salesTab='who';render();">担当者別</button>
+  return `<div class="kari-tab-bar" style="margin-bottom:0;padding-bottom:0;">
+    <div class="kari-tab-btn${F.salesTab==='overview'?' active':''}" onclick="F.salesTab='overview';render();">全体</div>
+    <div class="kari-tab-btn${F.salesTab==='who'?' active':''}" onclick="F.salesTab='who';render();">担当者別</div>
   </div>`;
 }
 
@@ -1312,9 +1312,9 @@ function renderClPage(){
         <div class="kpi"><div class="kpi-label">総売上（Jヨミ）</div><div class="kpi-val">${(v=>v>=10000?(v/10000).toFixed(2)+"億円":v.toFixed(0)+"万円")(sum((F.clTab==='tanto'?tantoSalesData:salesData).filter(r=>r.st==="J"),"amt"))}</div><div class="kpi-sub">${(F.clTab==='tanto'?tantoSalesData:salesData).filter(r=>r.st==="J").length}件</div></div>
         <div class="kpi"><div class="kpi-label">担当者数</div><div class="kpi-val">${unique(companies.map(c=>c["担当者"]||"")).length}</div><div class="kpi-sub">名</div></div>
       </div>
-      <div class="tabs" style="margin-bottom:0;">
-        <button class="tab ${F.clTab==='overview'?'active':''}" onclick="F.clTab='overview';render();">全体</button>
-        <button class="tab ${F.clTab==='tanto'?'active':''}" onclick="F.clTab='tanto';render();">担当者別</button>
+      <div class="kari-tab-bar" style="margin-bottom:0;padding-bottom:0;">
+        <div class="kari-tab-btn${F.clTab==='overview'?' active':''}" onclick="F.clTab='overview';render();">全体</div>
+        <div class="kari-tab-btn${F.clTab==='tanto'?' active':''}" onclick="F.clTab='tanto';render();">担当者別</div>
       </div>
     </div>
     ${F.clTab==='overview'?overviewContent:tantoContent}
