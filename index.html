@@ -369,7 +369,7 @@ function pageTabsHtml(subtitle){
 }
 function salesTabsHtml(){
   return `<div class="kari-tab-bar">
-    <div class="kari-tab-btn${F.salesTab==='overview'?' active':''}" onclick="F.salesTab='overview';render();">📊 全体</div>
+    <div class="kari-tab-btn${F.salesTab==='overview'?' active':''}" onclick="F.salesTab='overview';render();">🏢 全体</div>
     <div class="kari-tab-btn${F.salesTab==='who'?' active':''}" onclick="F.salesTab='who';render();">👤 担当者別</div>
   </div>`;
 }
@@ -1308,7 +1308,7 @@ function renderClPage(){
     <div class="sticky-header">
       ${pageTabsHtml(`リアルタイム連携 ｜ ${companies.length}社 / ${allCompanies.length}社中 ｜ 最終更新: ${updStr}`)}
       <div class="kari-tab-bar">
-        <div class="kari-tab-btn${F.clTab==='overview'?' active':''}" onclick="F.clTab='overview';render();">📊 全体</div>
+        <div class="kari-tab-btn${F.clTab==='overview'?' active':''}" onclick="F.clTab='overview';render();">🏢 全体</div>
         <div class="kari-tab-btn${F.clTab==='tanto'?' active':''}" onclick="F.clTab='tanto';render();">👤 担当者別</div>
       </div>
       <div class="kpi-grid">
