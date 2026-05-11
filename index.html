@@ -358,15 +358,14 @@ function pageTabsHtml(subtitle){
   const tabDefs=[{id:'main',label:'売上'},{id:'cl',label:'CL情報'},{id:'bumon',label:'部門コスト'},{id:'corpo',label:'コーポレートコスト'},{id:'rieki',label:'利益関連'},{id:'seikyuu',label:'立替費'},{id:'kari',label:'借入'}].filter(t=>allowedTabs.includes(t.id));
   const tabsHtml=tabDefs.map(t=>`<button class="page-tab ${F.page===t.id?'active':''}" onclick="F.page='${t.id}';render()">${t.label}</button>`).join('');
   const updateFn=F.page==='kari'?'kariFetchData()':'fetchData()';
-  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${subtitle?'6px':'16px'};">
     <div class="page-tabs" style="margin-bottom:0;">${tabsHtml}</div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div class="sub">${subtitle||""}</div>
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
       <button class="btn" onclick="${updateFn}">⟳ 更新</button>
       <span style="font-size:11px;color:var(--dim);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${currentUser||""}</span>
       <button class="btn" onclick="logout()" style="color:var(--red);border-color:rgba(239,68,68,.3);">ログアウト</button>
     </div>
-  </div>`;
+  </div>${subtitle?`<div class="sub" style="margin-bottom:10px;">${subtitle}</div>`:''}`;
 }
 function salesTabsHtml(){
   return `<div class="tabs" style="margin-bottom:0;">
