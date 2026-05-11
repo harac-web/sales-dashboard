@@ -1723,7 +1723,7 @@ function updateSidebar(){
 
   let html=`<div class="s-title">ヨミクエリ</div>`;
 
-  if(F.page==='main'){
+  if(F.page==='main' && F.salesTab!=='who'){
     html+=`
       ${sl('期',F.ki!=='all',"setFilter('ki','all')")}${chipsHtml('ki',kis)}
       ${sl('ステータス',F.st.length>0,"clearMulti('st')")}${multiChipsHtml('st',sts)}
