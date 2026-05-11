@@ -447,12 +447,12 @@ function renderWhoPage(){
   document.getElementById("app").innerHTML=`
     <div class="sticky-header">
       ${pageTabsHtml(`リアルタイム連携 ｜ ${data.length.toLocaleString()}件 ｜ 最終更新: ${updStr}`)}
+      ${salesTabsHtml()}
       <div class="kpi-grid">
         <div class="kpi"><div class="kpi-label">総売上（絞込後）</div><div class="kpi-val">${total>=10000?(total/10000).toFixed(2)+"億円":total.toFixed(0)+"万円"}</div><div class="kpi-sub">${data.length.toLocaleString()}件</div></div>
         <div class="kpi"><div class="kpi-label">担当人数</div><div class="kpi-val">${whoTotals.length}</div><div class="kpi-sub">名</div></div>
         ${top?`<div class="kpi"><div class="kpi-label">トップ担当</div><div class="kpi-val" style="font-size:16px;">${top.w}</div><div class="kpi-sub">${top.s.toFixed(0)}万円</div></div>`:""}
       </div>
-      ${salesTabsHtml()}
     </div>
     <div class="chart-wrap" style="margin-bottom:18px;"><div class="chart-title">月別売上推移（担当別）</div><canvas id="whoTrendChart" style="min-height:320px;max-height:400px;"></canvas></div>
     <div class="chart-wrap"><div class="chart-title">担当別・大分類内訳</div><canvas id="whoBreakdownChart" style="min-height:320px;max-height:400px;"></canvas><div id="whoTableSection" style="margin-top:12px;overflow-x:auto;"></div></div>
