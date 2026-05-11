@@ -1840,7 +1840,7 @@ function kariGetKiFromYM(ym){
   const diff=(parseInt(m[1])-KI_BASE_YEAR)*12+(parseInt(m[2])-KI_BASE_MONTH);
   return KI_BASE_NUM+Math.floor(diff/12);
 }
-function kariGetBaseName(name){return name.includes("_")?name.replace(/_.*$/,"").trim():name.trim();}
+function kariGetBaseName(name){const p=name.trim().split("_");if(p[0]==="済")return(p[2]||p[1]||p[0]).trim();return p[0].trim();}
 function kariGetMergedData(dataObj){
   const merged={};
   Object.keys(dataObj.banks).forEach(raw=>{
