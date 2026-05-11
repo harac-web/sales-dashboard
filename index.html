@@ -2237,6 +2237,10 @@ async function kariFetchData(){
   try{
     const res=await fetch(`${KARI_API_URL}?token=${encodeURIComponent(currentToken)}&email=${encodeURIComponent(currentUser)}`);
     const json=await res.json();
+    if(json.error==="unauthorized"){
+      document.getElementById("app").innerHTML=`<div class="sticky-header">${pageTabsHtml("")}</div><div class="loading"><div style="font-size:32px;margin-bottom:12px;">⚠️</div><div style="color:var(--red)">認証トークンの有効期限が切れました。</div><button class="btn btn-accent" style="margin-top:12px;" onclick="logout()">再ログイン</button></div>`;
+      updateSidebar();return;
+    }
     if(json.error)throw new Error(json.error);
     kariRaw=json;
     kariInitFilters();
