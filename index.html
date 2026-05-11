@@ -2113,6 +2113,7 @@ function kariDrawStackedBar(canvasId,dataObj,key){
 }
 function kariDrawBalancePie(){
   const el=document.getElementById("kariChartBalPie");if(!el)return;
+  el.width=260;el.height=260;el.style.width="260px";el.style.height="260px";
   const{prevYM}=kariCalcKPIs();
   const merged=kariGetMergedData(kariRaw.balance);
   const banks=Object.keys(merged.banks).filter(base=>kariF.banks.some(r=>kariGetBaseName(r)===base));
@@ -2137,6 +2138,7 @@ function kariDrawInterestCharts(){
   if(el1)kariChartInstances.interest=new Chart(el1,{type:"bar",data:kariGetDatasets(kariRaw.interest),options:kariStackedOpts()});
   const el3=document.getElementById("kariChartIntPie");
   if(el3){
+    el3.width=260;el3.height=260;el3.style.width="260px";el3.style.height="260px";
     const merged=kariGetMergedData(kariRaw.interest);
     const months=kariFilteredMonths(merged.months);
     const bankTotals=Object.keys(merged.banks).filter(base=>kariF.banks.some(r=>kariGetBaseName(r)===base)).map((base,i)=>({bank:base,total:months.reduce((s,m)=>{const idx=merged.months.findIndex(x=>String(x)===String(m));return s+(idx>=0?merged.banks[base][idx]||0:0);},0),color:KARI_COLORS[i%KARI_COLORS.length]}));
