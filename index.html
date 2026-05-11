@@ -1968,7 +1968,7 @@ function kariRenderBalance(){
     <div class="kari-card">
       <div class="kari-card-title">借入残高シェア（${prevYM}末）</div>
       <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
-        <div style="width:260px;flex-shrink:0;position:relative;"><canvas id="kariChartBalPie"></canvas></div>
+        <div style="flex-shrink:0;position:relative;"><canvas id="kariChartBalPie" width="260" height="260"></canvas></div>
         <div style="flex:1;min-width:180px;" id="kariBalPieTable"></div>
       </div>
     </div>`;
@@ -1997,7 +1997,7 @@ function kariRenderInterest(){
     <div class="kari-card">
       <div class="kari-card-title">銀行別・利息シェア（期間合計）</div>
       <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
-        <div style="width:260px;flex-shrink:0;position:relative;"><canvas id="kariChartIntPie"></canvas></div>
+        <div style="flex-shrink:0;position:relative;"><canvas id="kariChartIntPie" width="260" height="260"></canvas></div>
         <div style="flex:1;min-width:180px;" id="kariIntPieTable"></div>
       </div>
     </div>`;
@@ -2122,7 +2122,7 @@ function kariDrawBalancePie(){
   kariChartInstances.balPie=new Chart(el,{
     type:"doughnut",plugins:[ChartDataLabels],
     data:{labels:data.map(d=>d.bank),datasets:[{data:data.map(d=>d.val),backgroundColor:data.map(d=>d.color),borderWidth:1,borderColor:"#1a2f4a"}]},
-    options:{responsive:true,maintainAspectRatio:true,aspectRatio:1,plugins:{
+    options:{responsive:false,plugins:{
       legend:{display:false},
       tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${kariFmt(ctx.parsed)} (${grandTotal>0?(ctx.parsed/grandTotal*100).toFixed(1):0}%)`}},
       datalabels:{color:"#fff",font:{size:11,weight:"600"},formatter:(val)=>{const pct=grandTotal>0?(val/grandTotal*100):0;return pct>=5?pct.toFixed(1)+"%":""}}
@@ -2144,7 +2144,7 @@ function kariDrawInterestCharts(){
     kariChartInstances.intPie=new Chart(el3,{
       type:"doughnut",plugins:[ChartDataLabels],
       data:{labels:bankTotals.map(x=>x.bank),datasets:[{data:bankTotals.map(x=>x.total),backgroundColor:bankTotals.map(x=>x.color),borderWidth:1,borderColor:"#1a2f4a"}]},
-      options:{responsive:true,maintainAspectRatio:true,aspectRatio:1,plugins:{
+      options:{responsive:false,plugins:{
         legend:{display:false},
         tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${Math.round(ctx.parsed/1000).toLocaleString()}千円 (${grandTotal>0?(ctx.parsed/grandTotal*100).toFixed(1):0}%)`}},
         datalabels:{color:"#fff",font:{size:11,weight:"600"},formatter:(val)=>{const pct=grandTotal>0?(val/grandTotal*100):0;return pct>=5?pct.toFixed(1)+"%":""}}
