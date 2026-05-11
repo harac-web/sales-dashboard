@@ -369,8 +369,8 @@ function pageTabsHtml(subtitle){
 }
 function salesTabsHtml(){
   return `<div class="kari-tab-bar" style="margin-bottom:0;padding-bottom:0;">
-    <div class="kari-tab-btn${F.salesTab==='overview'?' active':''}" onclick="F.salesTab='overview';render();">全体</div>
-    <div class="kari-tab-btn${F.salesTab==='who'?' active':''}" onclick="F.salesTab='who';render();">担当者別</div>
+    <div class="kari-tab-btn${F.salesTab==='overview'?' active':''}" onclick="F.salesTab='overview';render();">📊 全体</div>
+    <div class="kari-tab-btn${F.salesTab==='who'?' active':''}" onclick="F.salesTab='who';render();">👤 担当者別</div>
   </div>`;
 }
 
@@ -395,9 +395,9 @@ function render(){
   document.getElementById("app").innerHTML=`
     <div class="sticky-header">
       ${pageTabsHtml(`リアルタイム連携 ｜ ${filteredData.length.toLocaleString()}件表示 / ${rawData.length.toLocaleString()}件中 ｜ 最終更新: ${updStr}`)}
+      ${salesTabsHtml()}
       <div class="kpi-grid" id="kpis"></div>
       <div class="controls-row">
-        ${salesTabsHtml()}
         <div style="width:24px;flex-shrink:0;"></div>
         <div class="stack-row" style="display:flex;margin-bottom:0;flex:1;flex-wrap:wrap;">
           <span class="stack-label">内訳:</span>
@@ -1307,14 +1307,14 @@ function renderClPage(){
   document.getElementById("app").innerHTML=`
     <div class="sticky-header">
       ${pageTabsHtml(`リアルタイム連携 ｜ ${companies.length}社 / ${allCompanies.length}社中 ｜ 最終更新: ${updStr}`)}
+      <div class="kari-tab-bar" style="margin-bottom:0;padding-bottom:0;">
+        <div class="kari-tab-btn${F.clTab==='overview'?' active':''}" onclick="F.clTab='overview';render();">📊 全体</div>
+        <div class="kari-tab-btn${F.clTab==='tanto'?' active':''}" onclick="F.clTab='tanto';render();">👤 担当者別</div>
+      </div>
       <div class="kpi-grid">
         <div class="kpi"><div class="kpi-label">会社数（取引中）</div><div class="kpi-val">${companies.filter(c=>(c["取引状況"]||"")==="取引中").length}</div><div class="kpi-sub">社</div></div>
         <div class="kpi"><div class="kpi-label">総売上（Jヨミ）</div><div class="kpi-val">${(v=>v>=10000?(v/10000).toFixed(2)+"億円":v.toFixed(0)+"万円")(sum((F.clTab==='tanto'?tantoSalesData:salesData).filter(r=>r.st==="J"),"amt"))}</div><div class="kpi-sub">${(F.clTab==='tanto'?tantoSalesData:salesData).filter(r=>r.st==="J").length}件</div></div>
         <div class="kpi"><div class="kpi-label">担当者数</div><div class="kpi-val">${unique(companies.map(c=>c["担当者"]||"")).length}</div><div class="kpi-sub">名</div></div>
-      </div>
-      <div class="kari-tab-bar" style="margin-bottom:0;padding-bottom:0;">
-        <div class="kari-tab-btn${F.clTab==='overview'?' active':''}" onclick="F.clTab='overview';render();">全体</div>
-        <div class="kari-tab-btn${F.clTab==='tanto'?' active':''}" onclick="F.clTab='tanto';render();">担当者別</div>
       </div>
     </div>
     ${F.clTab==='overview'?overviewContent:tantoContent}
